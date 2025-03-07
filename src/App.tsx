@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ResultPage from './pages/ResultPage'
 import DownloadPage from './pages/DownloadPage'
+import MoleculeTablePage from './pages/MoleculeTablePage'
 
 function App() {
   return (
@@ -9,6 +10,7 @@ function App() {
       <Route path="/" element={<HomePage />} />
       <Route path="/molecule/:moleculeId" element={<ResultPage />} />
       <Route path="/download" element={<DownloadPage />} />
+      <Route path="/table/:moleculeId" element={<MoleculeTablePage />} />
     </Routes>
   )
 }

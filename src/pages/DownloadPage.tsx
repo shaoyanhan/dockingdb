@@ -33,7 +33,7 @@ const DownloadPage = () => {
 
   // 下载文件处理函数
   const handleDownload = (filename: string) => {
-    const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/GT42_web/annotation/';
+    const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/';
     const downloadUrl = `${baseUrl}${filename}`;
     
     // 打开下载链接
