@@ -29,7 +29,7 @@ interface TableData {
 }
 
 const MoleculeTablePage = () => {
-  // 获取分子ID
+  // 获取分子ID，这个ID是HomePage.tsx中点击分子卡片时传递过来的，通过useParams获取
   const { moleculeId } = useParams<{ moleculeId: string }>();
   const navigate = useNavigate();
   
@@ -45,7 +45,7 @@ const MoleculeTablePage = () => {
   const [manualPageIndex, setManualPageIndex] = useState('1');
   
   // 将分子ID转换为API路径中需要的格式
-  const formatMoleculeNameForApi = (name: string): string => {
+  const formatMoleculeNameForApi = (name: string): string => { // 这是一个箭头函数（=>），接收一个参数 name，类型为 string。
     if (!name) return '';
     
     // 检查是否包含空格（多个单词）
@@ -91,6 +91,7 @@ const MoleculeTablePage = () => {
   };
   
   // 当分子ID或withoutPDX变化时获取数据
+  // useEffect 是一个React钩子函数，用于在组件挂载、更新或卸载时执行某些操作。第一个参数是一个回调函数，当依赖项发生变化时执行。第二个参数是一个依赖数组，当数组中的值发生变化时，回调函数会重新执行。
   useEffect(() => {
     fetchTableData();
     // 重置到第一页，但保留过滤条件
@@ -100,11 +101,14 @@ const MoleculeTablePage = () => {
   // 定义表格列
   const columnHelper = createColumnHelper<TableRow>();
   
+
+  // useMemo 是React的一个Hook，用于缓存计算结果，避免在组件重新渲染时重复计算。这里的columns是一个数组，包含了表格的列配置。通过useMemo，只有在依赖项（这里是空数组[]）发生变化时，才会重新计算columns，从而优化性能。
   const columns = useMemo(() => [
+    // columnHelper.accessor 是tanstack/react-table库中的一个函数，用于定义表格的列。它接收两个参数：第一个参数是数据的访问路径，第二个参数是一个配置对象，用于定义列的显示方式。
     columnHelper.accessor('rank', {
-      header: 'Rank',
-      cell: info => info.getValue(),
-      enableGlobalFilter: false, // 不包括在全局搜索中
+      header: 'Rank', // 列头显示为“Rank”。
+      cell: info => info.getValue(), // 单元格内容为数据源中的rank字段。
+      enableGlobalFilter: false, // 表示这一列的值不会被全局搜索功能检索
     }),
     columnHelper.accessor('pocketId', {
       header: 'Pocket ID',
@@ -353,7 +357,9 @@ const MoleculeTablePage = () => {
               </table>
             </div>
             
+            {/* 分页组件 */}
             <div className="mt-4 flex flex-wrap justify-between items-center text-sm">
+              {/* 显示当前页码和总页数 */}
               <div className="flex items-center mb-2 md:mb-0">
                 <span className="text-gray-600">
                   Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
@@ -364,6 +370,7 @@ const MoleculeTablePage = () => {
                   of {table.getFilteredRowModel().rows.length} rows
                 </span>
                 
+                {/* 选择每页显示的行数 */}  
                 <select
                   value={rowsPerPage}
                   onChange={e => {
@@ -381,7 +388,9 @@ const MoleculeTablePage = () => {
                 </select>
               </div>
               
+              {/* 分页按钮 */}  
               <div className="flex items-center space-x-2">
+                {/* 上一页按钮 */}
                 <button
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
@@ -397,6 +406,7 @@ const MoleculeTablePage = () => {
                   </svg>
                 </button>
                 
+                {/* 页码按钮 */}    
                 {pageNumbers.map((pageNum, idx) => {
                   const isCurrentPage = pageNum === currentPage;
                   const showEllipsisBefore = idx > 0 && pageNumbers[idx - 1] !== pageNum - 1;
@@ -430,6 +440,7 @@ const MoleculeTablePage = () => {
                   );
                 })}
                 
+                {/* 下一页按钮 */}
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
@@ -445,6 +456,7 @@ const MoleculeTablePage = () => {
                   </svg>
                 </button>
                 
+                {/* 手动页码输入框 */}
                 <form onSubmit={handleManualPageSubmit} className="flex items-center">
                   <input
                     type="text"
