@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -23,8 +23,17 @@ import BAImage from '../assets/images/BA.png';
 import DiphenylureaImage from '../assets/images/Diphenylurea.png';
 import TDImage from '../assets/images/TD.png';
 
-// 初始的分子数据
-const initialMoleculeImages = [
+// 定义视图模式类型
+type ViewMode = 'main' | 'cytokinin';
+
+// 定义分子数据类型
+interface MoleculeData {
+  id: string;
+  src: string;
+}
+
+// 主分子数据
+const mainMoleculeData: MoleculeData[] = [
   { id: 'Cytokinins', src: CytokininsImage },
   { id: 'Auxin', src: AuxinImage },
   { id: 'Brassinolide', src: BrassinolideImage },
@@ -35,8 +44,9 @@ const initialMoleculeImages = [
   { id: 'Strigolactone', src: StrigolactoneImage },
 ];
 
-// Cytokinins的二级目录数据
-const cytokininSubItems = [
+// Cytokinins二级数据
+const cytokininData: MoleculeData[] = [
+  { id: 'Cytokinins', src: CytokininsImage }, // 保留Cytokinins作为父类别
   { id: 'iP', src: iPImage },
   { id: 'Kin', src: KinImage },
   { id: 'tZ', src: tZImage },
@@ -48,56 +58,39 @@ const cytokininSubItems = [
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const [searchResults, setSearchResults] = useState(initialMoleculeImages);
-  const [selectedCytokinins, setSelectedCytokinins] = useState(false);
+  
+  // 使用单一的viewMode状态来管理显示模式，不再需要多个状态变量
+  const [viewMode, setViewMode] = useState<ViewMode>('main');
+  
+  // 获取当前应该显示的分子数据
+  const currentMoleculeData = viewMode === 'main' ? mainMoleculeData : cytokininData;
   
   // 处理搜索逻辑
-  const handleSearch = (query: string, withoutPDX: boolean) => {
+  const handleSearch = useCallback((query: string, withoutPDX: boolean) => {
     console.log('Searching for:', query, 'Without PDX:', withoutPDX);
     
     if (query.trim()) {
       // 如果有查询内容，导航到全局搜索页面
       navigate(`/search?query=${encodeURIComponent(query)}&withoutPDX=${withoutPDX}`);
     } else {
-      // 如果查询为空，重置本地显示
-      setSelectedCytokinins(false);
-      setSearchResults(initialMoleculeImages);
+      // 如果查询为空，重置为主视图
+      setViewMode('main');
     }
-  };
+  }, [navigate]);
 
-  // 处理卡片点击
-  const handleCardClick = (id: string) => {
-    // 添加调试日志，帮助识别问题
-    console.log(`Card clicked: ${id}, Current Cytokinins state: ${selectedCytokinins}`);
+  // 处理卡片点击 - 使用useCallback优化性能
+  const handleCardClick = useCallback((id: string) => {
+    console.log(`Card clicked: ${id}, Current view mode: ${viewMode}`);
     
+    // 处理Cytokinins卡片的特殊逻辑
     if (id === 'Cytokinins') {
-      // 切换Cytokinins的选中状态，使用函数式更新确保基于最新状态
-      setSelectedCytokinins(prevState => {
-        const newState = !prevState;
-        console.log(`Setting Cytokinins state to: ${newState}`);
-        
-        // 更新搜索结果
-        if (newState) {
-          // 如果新状态是选中，显示二级目录
-          setSearchResults([
-            { id: 'Cytokinins', src: CytokininsImage },
-            ...cytokininSubItems
-          ]);
-        } else {
-          // 如果新状态是未选中，恢复初始卡片
-          setSearchResults(initialMoleculeImages);
-        }
-        
-        return newState;
-      });
-    } else if (selectedCytokinins) {
-      // 如果在Cytokinins选中状态下点击了二级目录项，导航到表格页
-      navigate(`/table/${id}`);
+      // 切换视图模式
+      setViewMode(prevMode => prevMode === 'main' ? 'cytokinin' : 'main');
     } else {
-      // 其他普通卡片的点击，导航到表格页
+      // 其他卡片直接导航到表格页面
       navigate(`/table/${id}`);
     }
-  };
+  }, [navigate, viewMode]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -107,15 +100,30 @@ const HomePage = () => {
       <main className="flex-grow container mx-auto px-4 py-6">
         <SearchBar onSearch={handleSearch} />
 
-        {/* Molecule Grid */}
+        {/* 添加可视化指示器，显示当前在哪个视图 */}
+        <div className="mb-4 flex justify-center">
+          {viewMode === 'cytokinin' && (
+            <button 
+              onClick={() => setViewMode('main')}
+              className="flex items-center text-green-700 font-medium hover:text-green-900 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
+              </svg>
+              Back to main
+            </button>
+          )}
+        </div>
+
+        {/* Molecule Cards Grid - 使用memo组件和高效状态管理提高性能 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mb-12 max-w-6xl mx-auto">
-          {searchResults.map((molecule) => (
+          {currentMoleculeData.map((molecule) => (
             <MoleculeCard 
-              key={molecule.id} 
+              key={`${viewMode}-${molecule.id}`}
               id={molecule.id} 
               imageSrc={molecule.src} 
-              isSelected={molecule.id === 'Cytokinins' && selectedCytokinins}
-              isSubItem={selectedCytokinins && molecule.id !== 'Cytokinins'}
+              isSelected={molecule.id === 'Cytokinins' && viewMode === 'cytokinin'}
+              isSubItem={viewMode === 'cytokinin' && molecule.id !== 'Cytokinins'}
               onClick={handleCardClick}
             />
           ))}

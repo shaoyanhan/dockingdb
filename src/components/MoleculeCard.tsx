@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 
 interface MoleculeCardProps {
   id: string;
@@ -9,13 +9,17 @@ interface MoleculeCardProps {
   onClick?: (id: string) => void;
 }
 
-const MoleculeCard = ({ id, imageSrc, isSelected = false, isSubItem = false, onClick }: MoleculeCardProps) => {
+// 使用React.memo包裹组件以避免不必要的重渲染
+const MoleculeCard = memo(({ id, imageSrc, isSelected = false, isSubItem = false, onClick }: MoleculeCardProps) => {
   const navigate = useNavigate();
   const [isHovering, setIsHovering] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
-    // 阻止事件冒泡，确保点击事件只触发一次
+  // 使用useCallback优化点击处理函数
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // 阻止事件冒泡
     e.stopPropagation();
+    
+    console.log(`MoleculeCard clicked: ${id}`);
     
     if (onClick) {
       onClick(id);
@@ -23,7 +27,11 @@ const MoleculeCard = ({ id, imageSrc, isSelected = false, isSubItem = false, onC
       // 如果没有点击处理函数且不是子项，直接导航
       navigate(`/molecule/${id}`);
     }
-  };
+  }, [id, onClick, navigate, isSubItem]);
+
+  // 使用useCallback优化鼠标事件处理函数
+  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
 
   // 根据是否选中和是否为子项使用不同的样式
   const cardClasses = `
@@ -38,8 +46,8 @@ const MoleculeCard = ({ id, imageSrc, isSelected = false, isSubItem = false, onC
     <div 
       className={cardClasses} 
       onClick={handleClick}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <div className={`aspect-square flex items-center justify-center p-4 ${isSubItem ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-green-600 to-green-700'}`}>
         <div className="w-full h-full relative flex items-center justify-center">
@@ -73,6 +81,9 @@ const MoleculeCard = ({ id, imageSrc, isSelected = false, isSubItem = false, onC
       </div>
     </div>
   );
-};
+});
+
+// 添加显示名称，有助于开发调试
+MoleculeCard.displayName = 'MoleculeCard';
 
 export default MoleculeCard; 
