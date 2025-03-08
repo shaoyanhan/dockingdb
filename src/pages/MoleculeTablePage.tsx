@@ -94,7 +94,7 @@ const MoleculeTablePage = () => {
   const getApiUrl = (molecule: string, withoutPDX: boolean): string => {
     const formattedName = formatMoleculeNameForApi(molecule);
     const fileName = withoutPDX ? 'statistic_result_bang_sorted' : 'statistic_result_sorted';
-    return `https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/${formattedName}/${fileName}.json`;
+    return `https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/json/${formattedName}/${fileName}.json`;
   };
   
   // 获取表格数据

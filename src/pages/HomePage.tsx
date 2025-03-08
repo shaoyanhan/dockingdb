@@ -67,21 +67,29 @@ const HomePage = () => {
 
   // 处理卡片点击
   const handleCardClick = (id: string) => {
+    // 添加调试日志，帮助识别问题
+    console.log(`Card clicked: ${id}, Current Cytokinins state: ${selectedCytokinins}`);
+    
     if (id === 'Cytokinins') {
-      // 切换Cytokinins的选中状态
-      if (selectedCytokinins) {
-        // 如果已经选中了，再次点击取消选中并恢复初始卡片
-        setSelectedCytokinins(false);
-        setSearchResults(initialMoleculeImages);
-      } else {
-        // 如果没选中，选中并显示二级目录
-        setSelectedCytokinins(true);
-        // 保留Cytokinins卡片，添加它的二级目录卡片
-        setSearchResults([
-          { id: 'Cytokinins', src: CytokininsImage },
-          ...cytokininSubItems
-        ]);
-      }
+      // 切换Cytokinins的选中状态，使用函数式更新确保基于最新状态
+      setSelectedCytokinins(prevState => {
+        const newState = !prevState;
+        console.log(`Setting Cytokinins state to: ${newState}`);
+        
+        // 更新搜索结果
+        if (newState) {
+          // 如果新状态是选中，显示二级目录
+          setSearchResults([
+            { id: 'Cytokinins', src: CytokininsImage },
+            ...cytokininSubItems
+          ]);
+        } else {
+          // 如果新状态是未选中，恢复初始卡片
+          setSearchResults(initialMoleculeImages);
+        }
+        
+        return newState;
+      });
     } else if (selectedCytokinins) {
       // 如果在Cytokinins选中状态下点击了二级目录项，导航到表格页
       navigate(`/table/${id}`);
