@@ -1,22 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface SearchBarProps {
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, withoutPDX: boolean) => void;
 }
 
 const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [withoutPDX, setWithoutPDX] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleExampleClick = (example: string) => {
     setSearchQuery(example);
   };
 
-  const handleSearch = () => {
-    if (onSearch) {
-      onSearch(searchQuery);
-    }
-  };
+  // Debounced search implementation
+  const debouncedSearch = useCallback(
+    (() => {
+      let timer: NodeJS.Timeout | null = null;
+      return (value: string, withPDX: boolean) => {
+        setIsLoading(true);
+        if (timer) {
+          clearTimeout(timer);
+        }
+        timer = setTimeout(() => {
+          if (onSearch) {
+            onSearch(value, withPDX);
+          }
+          setIsLoading(false);
+        }, 1000); // 1 second debounce delay
+      };
+    })(),
+    [onSearch]
+  );
+
+  // Trigger debounced search when search query or withoutPDX changes
+  useEffect(() => {
+    debouncedSearch(searchQuery, withoutPDX);
+    return () => {
+      setIsLoading(false);
+    };
+  }, [searchQuery, withoutPDX, debouncedSearch]);
 
   return (
     <div className="max-w-3xl mx-auto mt-8 mb-16">
@@ -25,18 +48,16 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           <input
             type="text"
             placeholder="Search ID or any text ..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 text-lg mb-2 sm:mb-0"
+            className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
+          {isLoading && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-r-2 border-green-700 border-l-2 border-transparent"></div>
+            </div>
+          )}
         </div>
-        <button 
-          className="bg-green-700 text-white text-lg font-semibold px-8 py-3 rounded-r-md hover:bg-green-800 transition-all duration-200 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
-          onClick={handleSearch}
-        >
-          Search
-        </button>
       </div>
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-3">
@@ -44,11 +65,20 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           <span className="mr-1">Example:</span>
           <span 
             className="cursor-pointer hover:underline hover:text-green-800 focus:text-green-900 focus:outline-none focus:ring-1 focus:ring-green-600 px-1 py-0.5 rounded-sm transition-colors"
-            onClick={() => handleExampleClick("6H3X")}
+            onClick={() => handleExampleClick("5JCN")}
             tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("6H3X")}
+            onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("5JCN")}
           >
-            6H3X
+            5JCN
+          </span>
+          <span className="mx-1">,</span>
+          <span 
+            className="cursor-pointer hover:underline hover:text-green-800 focus:text-green-900 focus:outline-none focus:ring-1 focus:ring-green-600 px-1 py-0.5 rounded-sm transition-colors"
+            onClick={() => handleExampleClick("abscisic_acid")}
+            tabIndex={0}
+            onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("abscisic_acid")}
+          >
+            abscisic_acid
           </span>
           <span className="mx-1">,</span>
           <span 

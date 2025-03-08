@@ -52,12 +52,17 @@ const HomePage = () => {
   const [selectedCytokinins, setSelectedCytokinins] = useState(false);
   
   // 处理搜索逻辑
-  const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    // 重置Cytokinins选中状态
-    setSelectedCytokinins(false);
-    // 这里应该做真正的搜索，但现在简单返回初始数据
-    setSearchResults(initialMoleculeImages);
+  const handleSearch = (query: string, withoutPDX: boolean) => {
+    console.log('Searching for:', query, 'Without PDX:', withoutPDX);
+    
+    if (query.trim()) {
+      // 如果有查询内容，导航到全局搜索页面
+      navigate(`/search?query=${encodeURIComponent(query)}&withoutPDX=${withoutPDX}`);
+    } else {
+      // 如果查询为空，重置本地显示
+      setSelectedCytokinins(false);
+      setSearchResults(initialMoleculeImages);
+    }
   };
 
   // 处理卡片点击

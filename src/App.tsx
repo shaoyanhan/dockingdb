@@ -3,6 +3,7 @@ import HomePage from './pages/HomePage'
 import DownloadPage from './pages/DownloadPage'
 import MoleculeTablePage from './pages/MoleculeTablePage'
 import MoleculeStructurePage from './pages/MoleculeStructurePage'
+import GlobalSearchPage from './pages/GlobalSearchPage'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/download" element={<DownloadPage />} />
       <Route path="/table/:moleculeId" element={<MoleculeTablePage />} />
       <Route path="/structure/:moleculeId/:pocketId" element={<MoleculeStructurePage />} />
+      <Route path="/search" element={<GlobalSearchPage />} />
     </Routes>
   )
 }

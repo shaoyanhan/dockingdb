@@ -23,6 +23,7 @@ interface StructurePageState {
   paperTitle: string;
   paperLink: string;
   tableState?: TableState; // 添加可选的表格状态
+  sourcePage?: 'table' | 'search'; // 添加来源页面标识
 }
 
 interface MolecularData {
@@ -139,12 +140,26 @@ const MoleculeStructurePage = () => {
 
   // 处理返回按钮点击，保持表格状态
   const handleBackClick = () => {
-    // 如果有保存的表格状态，则使用它导航回表格页面
-    if (state?.tableState) {
+    if (state?.sourcePage === 'search' && state?.tableState) {
+      // 如果来源是搜索页面，并且有保存的表格状态，则导航回搜索页面
+      navigate('/search', {
+        state: {
+          previousSearch: true, // 标记这是从结构页面返回
+          tableState: state.tableState
+        }
+      });
+    } else if (state?.tableState) {
+      // 如果来源是表格页面或未指定，但有表格状态，则导航回表格页面
       navigate(`/table/${moleculeId}`, { state: state.tableState });
     } else {
-      // 如果没有保存的状态，直接返回
-      navigate(`/table/${moleculeId}`);
+      // 如果没有保存的状态，尝试检查分子ID
+      if (moleculeId?.includes('_')) {
+        // 如果分子ID包含下划线，可能是从搜索页面来的
+        navigate('/search');
+      } else {
+        // 默认导航回表格页面
+        navigate(`/table/${moleculeId}`);
+      }
     }
   };
 

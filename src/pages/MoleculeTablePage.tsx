@@ -187,7 +187,8 @@ const MoleculeTablePage = () => {
                     globalFilter,
                     withoutPDX,
                     manualPageIndex // 添加手动页码输入框的状态
-                  }
+                  },
+                  sourcePage: 'table' // 添加来源页面标识
                 }
               });
             }}
