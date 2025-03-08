@@ -23,6 +23,22 @@ interface TableRow {
   paperLink: string;
 }
 
+
+// 定义表格数据类型，具体格式：
+// {
+//     "total": num,
+//     "rows": [
+//         {
+//             "rank": num,
+//             "pocketId": "str",
+//             "gridScore": "str",
+//             "structTitle": "str",
+//             "pdbId": "str",
+//             "paperTitle": "str",
+//             "paperLink": "str"
+//         },
+//     ]
+// }
 interface TableData {
   total: number;
   rows: TableRow[];

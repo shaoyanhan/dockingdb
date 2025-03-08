@@ -46,19 +46,19 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
     { name: 'Jia-Ming Song' },
     { name: 'Wenguo Cai' },
     { name: 'Zhenhua Ming' },
-    { name: 'Ling-Ling Chen' },
+    { name: 'Ling-Ling Chen', email: 'llchen@gxu.edu.cn' },
   ];
   
   const locations: ContactLocation[] = [
     { 
       name: 'Location 1', 
       address: 'College of Informatics, Huazhong Agricultural University, Wuhan 430070, China',
-      website: 'https://coi.hzau.edu.cn/'
+      website: 'https://encoi.hzau.edu.cn/index.htm'
     },
     { 
       name: 'Location 2', 
       address: 'State Key Laboratory for Conservation and Utilization of Subtropical Agro-bioresources, College of Life Science and Technology, Guangxi University, Nanning 530004, China',
-      website: 'https://sklcusa.gxu.edu.cn/'
+      website: 'https://sklcusa.gxu.edu.cn/English/Home.htm'
     },
     { 
       name: 'Location 3', 
@@ -66,7 +66,7 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
     },
   ];
   
-  const projectSource = 'https://github.com/shaoyanhan/DockingDB';
+  const projectSource = 'https://github.com/shaoyanhan/dockingdb';
   
   // 处理复制邮箱到剪贴板
   const handleCopyEmail = (email: string, name: string) => {

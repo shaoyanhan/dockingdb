@@ -96,7 +96,7 @@ const Footer = () => {
           <div className="w-60 h-12 bg-white rounded-md hover:scale-105 transition-transform cursor-pointer flex items-center justify-center">
             {/* Logo 1 */}
             <a 
-              href="https://coi.hzau.edu.cn/" 
+              href="https://encoi.hzau.edu.cn/index.htm" 
               target="_blank" 
               rel="noopener noreferrer"
             >
@@ -110,7 +110,7 @@ const Footer = () => {
           <div className="w-50 h-12 bg-white rounded-md hover:scale-105 transition-transform cursor-pointer flex items-center justify-center">
             {/* Logo 2 */}
             <a 
-              href="https://sklcusa.gxu.edu.cn/" 
+              href="https://sklcusa.gxu.edu.cn/English/Home.htm" 
               target="_blank" 
               rel="noopener noreferrer"
             >
