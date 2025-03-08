@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import {
@@ -44,21 +44,37 @@ interface TableData {
   rows: TableRow[];
 }
 
+// 定义表格状态类型
+interface TableState {
+  pageIndex: number;
+  rowsPerPage: number;
+  globalFilter: string;
+  withoutPDX: boolean;
+  manualPageIndex: string; // 添加手动页码输入框的状态
+}
+
 const MoleculeTablePage = () => {
   // 获取分子ID，这个ID是HomePage.tsx中点击分子卡片时传递过来的，通过useParams获取
   const { moleculeId } = useParams<{ moleculeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const savedState = location.state as TableState | undefined;
   
-  // 状态管理
+  // 是否已初始化表格
+  const [isInitialized, setIsInitialized] = useState(false);
+  // 跟踪筛选条件变化
+  const [filterChanged, setFilterChanged] = useState(false);
+  
+  // 状态管理，从location.state恢复状态
   const [tableData, setTableData] = useState<TableData>({ total: 0, rows: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [withoutPDX, setWithoutPDX] = useState(false);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [withoutPDX, setWithoutPDX] = useState(savedState?.withoutPDX || false);
+  const [globalFilter, setGlobalFilter] = useState(savedState?.globalFilter || '');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [manualPageIndex, setManualPageIndex] = useState('1');
+  const [rowsPerPage, setRowsPerPage] = useState(savedState?.rowsPerPage || 10);
+  const [pageIndex, setPageIndex] = useState(savedState?.pageIndex || 0);
+  const [manualPageIndex, setManualPageIndex] = useState(savedState?.manualPageIndex || '1');
   
   // 将分子ID转换为API路径中需要的格式
   const formatMoleculeNameForApi = (name: string): string => { // 这是一个箭头函数（=>），接收一个参数 name，类型为 string。
@@ -98,6 +114,7 @@ const MoleculeTablePage = () => {
       
       const data = await response.json();
       setTableData(data);
+      setIsInitialized(true);
     } catch (err) {
       console.error('Failed to fetch data:', err);
       setError('Failed to load data. Please try again later.');
@@ -107,12 +124,30 @@ const MoleculeTablePage = () => {
   };
   
   // 当分子ID或withoutPDX变化时获取数据
-  // useEffect 是一个React钩子函数，用于在组件挂载、更新或卸载时执行某些操作。第一个参数是一个回调函数，当依赖项发生变化时执行。第二个参数是一个依赖数组，当数组中的值发生变化时，回调函数会重新执行。
   useEffect(() => {
     fetchTableData();
-    // 重置到第一页，但保留过滤条件
-    setPageIndex(0);
+    // 如果withoutPDX改变，标记筛选条件已变化
+    if (isInitialized) {
+      setFilterChanged(true);
+    }
   }, [moleculeId, withoutPDX]);
+
+  // 当globalFilter变化时，标记筛选条件已变化
+  useEffect(() => {
+    if (isInitialized && globalFilter !== (savedState?.globalFilter || '')) {
+      setFilterChanged(true);
+    }
+  }, [globalFilter, isInitialized]);
+  
+  // 当筛选条件变化时，重置页码到第一页
+  useEffect(() => {
+    if (filterChanged && isInitialized) {
+      setPageIndex(0);
+      setManualPageIndex('1');
+      table.setPageIndex(0);
+      setFilterChanged(false);
+    }
+  }, [filterChanged, isInitialized]);
   
   // 定义表格列
   const columnHelper = createColumnHelper<TableRow>();
@@ -122,25 +157,45 @@ const MoleculeTablePage = () => {
   const columns = useMemo(() => [
     // columnHelper.accessor 是tanstack/react-table库中的一个函数，用于定义表格的列。它接收两个参数：第一个参数是数据的访问路径，第二个参数是一个配置对象，用于定义列的显示方式。
     columnHelper.accessor('rank', {
-      header: 'Rank', // 列头显示为“Rank”。
+      header: 'Rank', // 列头显示为"Rank"。
       cell: info => info.getValue(), // 单元格内容为数据源中的rank字段。
       enableGlobalFilter: false, // 表示这一列的值不会被全局搜索功能检索
     }),
     columnHelper.accessor('pocketId', {
       header: 'Pocket ID',
-      cell: info => (
-        <a 
-          href={`#/structure/${info.getValue()}`} 
-          className="text-blue-600 hover:text-blue-800 hover:underline"
-          onClick={(e) => {
-            e.preventDefault();
-            // 这里可以添加跳转到分子对接结构结果页面的逻辑
-            alert(`Will navigate to structure view for ${info.getValue()}`);
-          }}
-        >
-          {info.getValue()}
-        </a>
-      ),
+      cell: info => {
+        const row = info.row.original;
+        return (
+          <a 
+            href="#" 
+            className="text-blue-600 hover:text-blue-800 hover:underline"
+            onClick={(e) => {
+              e.preventDefault();
+              // 导航到结构页面，同时保存当前表格状态
+              navigate(`/structure/${moleculeId}/${info.getValue()}`, {
+                state: {
+                  // 结构信息
+                  pocketId: info.getValue(),
+                  pdbId: row.pdbId,
+                  structTitle: row.structTitle,
+                  paperTitle: row.paperTitle,
+                  paperLink: row.paperLink,
+                  // 表格状态信息
+                  tableState: {
+                    pageIndex,
+                    rowsPerPage,
+                    globalFilter,
+                    withoutPDX,
+                    manualPageIndex // 添加手动页码输入框的状态
+                  }
+                }
+              });
+            }}
+          >
+            {info.getValue()}
+          </a>
+        );
+      },
     }),
     columnHelper.accessor('gridScore', {
       header: 'Grid Score',
@@ -181,7 +236,7 @@ const MoleculeTablePage = () => {
         );
       },
     }),
-  ], []);
+  ], [moleculeId, pageIndex, rowsPerPage, globalFilter, withoutPDX, manualPageIndex]);
   
   // 设置表格实例
   const table = useReactTable({
@@ -207,11 +262,30 @@ const MoleculeTablePage = () => {
         setManualPageIndex((newPageIndex + 1).toString());
       }
     },
+    // 禁用自动页码重置
+    autoResetPageIndex: false,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     debugTable: true,
   });
+  
+  // 确保当数据加载完成后设置正确的页码
+  useEffect(() => {
+    if (isInitialized && !loading && tableData.rows.length > 0) {
+      // 确保页码不超过最大页数
+      const maxPageIndex = Math.max(0, Math.ceil(tableData.rows.length / rowsPerPage) - 1);
+      const validPageIndex = Math.min(pageIndex, maxPageIndex);
+      
+      if (validPageIndex !== pageIndex) {
+        setPageIndex(validPageIndex);
+        setManualPageIndex((validPageIndex + 1).toString());
+      }
+      
+      // 强制表格更新分页状态
+      table.setPageIndex(validPageIndex);
+    }
+  }, [isInitialized, loading, tableData, rowsPerPage]);
   
   // 计算页码显示逻辑
   const pageCount = table.getPageCount();
@@ -260,10 +334,21 @@ const MoleculeTablePage = () => {
     
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= pageCount) {
       setPageIndex(pageNumber - 1);
+      table.setPageIndex(pageNumber - 1);
     } else {
       // 如果输入无效，重置为当前页码
       setManualPageIndex((pageIndex + 1).toString());
     }
+  };
+  
+  // 处理withoutPDX变化
+  const handleWithoutPDXChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWithoutPDX(e.target.checked);
+  };
+  
+  // 处理全局筛选变化
+  const handleGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGlobalFilter(e.target.value);
   };
   
   return (
@@ -292,7 +377,7 @@ const MoleculeTablePage = () => {
                 type="checkbox"
                 className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
                 checked={withoutPDX}
-                onChange={(e) => setWithoutPDX(e.target.checked)}
+                onChange={handleWithoutPDXChange}
               />
               <span className="text-lg">Without PDX</span>
             </label>
@@ -304,7 +389,7 @@ const MoleculeTablePage = () => {
             <input
               type="text"
               value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
+              onChange={handleGlobalFilterChange}
               placeholder="Fuzzy filter..."
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
             />
@@ -386,13 +471,18 @@ const MoleculeTablePage = () => {
                   of {table.getFilteredRowModel().rows.length} rows
                 </span>
                 
-                {/* 选择每页显示的行数 */}  
+                {/* 选择每页显示的行数 */}
                 <select
                   value={rowsPerPage}
                   onChange={e => {
-                    setRowsPerPage(Number(e.target.value));
-                    table.setPageIndex(0);
-                    setManualPageIndex('1');
+                    const newRowsPerPage = Number(e.target.value);
+                    setRowsPerPage(newRowsPerPage);
+                    // 更新页码以保持大致相同的数据显示范围
+                    const currentFirstRow = pageIndex * rowsPerPage;
+                    const newPageIndex = Math.floor(currentFirstRow / newRowsPerPage);
+                    setPageIndex(newPageIndex);
+                    table.setPageSize(newRowsPerPage);
+                    setManualPageIndex((newPageIndex + 1).toString());
                   }}
                   className="ml-4 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
@@ -404,11 +494,16 @@ const MoleculeTablePage = () => {
                 </select>
               </div>
               
-              {/* 分页按钮 */}  
+              {/* 分页按钮 */}
               <div className="flex items-center space-x-2">
                 {/* 上一页按钮 */}
                 <button
-                  onClick={() => table.previousPage()}
+                  onClick={() => {
+                    const newPageIndex = pageIndex - 1;
+                    setPageIndex(newPageIndex);
+                    table.setPageIndex(newPageIndex);
+                    setManualPageIndex((newPageIndex + 1).toString());
+                  }}
                   disabled={!table.getCanPreviousPage()}
                   className={`
                     px-3 py-1 rounded-md border
@@ -422,7 +517,7 @@ const MoleculeTablePage = () => {
                   </svg>
                 </button>
                 
-                {/* 页码按钮 */}    
+                {/* 页码按钮 */}
                 {pageNumbers.map((pageNum, idx) => {
                   const isCurrentPage = pageNum === currentPage;
                   const showEllipsisBefore = idx > 0 && pageNumbers[idx - 1] !== pageNum - 1;
@@ -436,6 +531,7 @@ const MoleculeTablePage = () => {
                       
                       <button
                         onClick={() => {
+                          setPageIndex(pageNum);
                           table.setPageIndex(pageNum);
                           setManualPageIndex((pageNum + 1).toString());
                         }}
@@ -458,7 +554,12 @@ const MoleculeTablePage = () => {
                 
                 {/* 下一页按钮 */}
                 <button
-                  onClick={() => table.nextPage()}
+                  onClick={() => {
+                    const newPageIndex = pageIndex + 1;
+                    setPageIndex(newPageIndex);
+                    table.setPageIndex(newPageIndex);
+                    setManualPageIndex((newPageIndex + 1).toString());
+                  }}
                   disabled={!table.getCanNextPage()}
                   className={`
                     px-3 py-1 rounded-md border

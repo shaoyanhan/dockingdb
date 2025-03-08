@@ -1,10 +1,33 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // 创建一个组件来安全地加载clustrmaps脚本
 const ClusterMap = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isStructureFullscreen, setIsStructureFullscreen] = useState(false);
   
+  // 检查全屏状态
   useEffect(() => {
+    const checkFullscreenStatus = () => {
+      // 检查全局变量中的全屏状态
+      setIsStructureFullscreen(!!window.isStructurePageFullscreen);
+    };
+    
+    // 立即检查一次
+    checkFullscreenStatus();
+    
+    // 设置定时器周期性检查全屏状态
+    const intervalId = setInterval(checkFullscreenStatus, 500);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  // 加载地图脚本
+  useEffect(() => {
+    // 如果页面处于全屏模式，不执行任何操作
+    if (isStructureFullscreen) return;
+    
     // 移除之前的脚本（如果有）
     const existingScript = document.getElementById('clustrmaps');
     if (existingScript) {
@@ -73,22 +96,42 @@ const ClusterMap = () => {
         existingScript.remove();
       }
     };
-  }, []);
+  }, [isStructureFullscreen]);
   
+  // 如果页面处于全屏模式，返回空元素
+  if (isStructureFullscreen) {
+    return null;
+  }
+
   return (
     <div 
       ref={containerRef} 
-      className="w-full h-full flex items-center justify-center overflow-hidden" 
-      style={{ 
-        minWidth: '100%', 
-        minHeight: '100%',
-        position: 'relative'
-      }}
+      className="w-full h-full flex items-center justify-center"
+      style={{ minHeight: '60px' }}
     />
   );
 };
 
 const Footer = () => {
+  // 检查是否处于全屏模式，决定是否渲染ClusterMap
+  const [isStructureFullscreen, setIsStructureFullscreen] = useState(false);
+  
+  useEffect(() => {
+    const checkFullscreenStatus = () => {
+      setIsStructureFullscreen(!!window.isStructurePageFullscreen);
+    };
+    
+    // 立即检查一次
+    checkFullscreenStatus();
+    
+    // 设置定时器周期性检查全屏状态
+    const intervalId = setInterval(checkFullscreenStatus, 500);
+    
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <footer className="bg-green-700 py-8 mt-auto">
       <div className="container mx-auto px-4">
@@ -123,15 +166,22 @@ const Footer = () => {
           </div>
           <div className="w-40 h-16 bg-white rounded-md hover:scale-105 transition-transform cursor-pointer flex items-center justify-center p-0 overflow-hidden">
             {/* Logo 3 - ClusterMaps */}
-            <ClusterMap />
+            {!isStructureFullscreen && <ClusterMap />}
           </div>
         </div>
         <div className="text-white text-center">
-          Copyright © 2025-2035 All rights reserved
+          <p>&copy; {new Date().getFullYear()} DockingDB. All rights reserved.</p>
         </div>
       </div>
     </footer>
   );
 };
+
+// 全局变量声明，用于访问MoleculeStructurePage定义的全屏状态
+declare global {
+  interface Window {
+    isStructurePageFullscreen?: boolean;
+  }
+}
 
 export default Footer; 
