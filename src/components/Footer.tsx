@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import logo_hzau from '../assets/images/logo_hzau.png';
+import logo_gxu from '../assets/images/logo_gxu.png';
 
 // 创建一个组件来安全地加载clustrmaps脚本
 const ClusterMap = () => {
@@ -144,7 +146,7 @@ const Footer = () => {
               rel="noopener noreferrer"
             >
               <img 
-                src="/src/assets/images/logo_hzau.png" 
+                src={logo_hzau} 
                 alt="华中农业大学-信息学院"
                 className="h-8 w-auto object-contain"
               />
@@ -158,7 +160,7 @@ const Footer = () => {
               rel="noopener noreferrer"
             >
               <img 
-                src="/src/assets/images/logo_gxu.png" 
+                src={logo_gxu} 
                 alt="亚热带农业生物资源保护与利用国家重点实验室"
                 className="h-8 w-auto ml-3 mr-3 object-contain"
               />

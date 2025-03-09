@@ -207,6 +207,7 @@ const GlobalSearchPage = () => {
     setError(null);
     
     try {
+      // const url = new URL('https://cbi.gxu.edu.cn/DockingDB/DockingDB_web_backend/api/search/');
       const url = new URL('http://127.0.0.1:8000/api/search/');
       url.searchParams.append('query', debouncedFilter);
       url.searchParams.append('without_pdx', withoutPDX.toString());
@@ -303,7 +304,7 @@ const GlobalSearchPage = () => {
         const row = info.row.original;
         return (
           <a 
-            href="#" 
+            href={`/DockingDB/structure/${row.hormone_type}/${info.getValue()}`} 
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();

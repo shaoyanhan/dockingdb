@@ -167,7 +167,7 @@ const MoleculeTablePage = () => {
         const row = info.row.original;
         return (
           <a 
-            href="#" 
+            href={`/DockingDB/structure/${moleculeId}/${info.getValue()}`} 
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();

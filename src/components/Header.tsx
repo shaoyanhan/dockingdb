@@ -17,12 +17,12 @@ const Header = () => {
         <div className="flex gap-4">
           <Link 
             to="/download" 
-            className="px-6 py-2 rounded-md transition-all duration-200 cursor-pointer bg-green-600 text-white hover:bg-green-800 focus:ring-2 focus:ring-green-500 active:bg-green-900 active:scale-95 inline-block text-center"
+            className="px-6 py-2 rounded-md transition-all duration-200 cursor-pointer bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 active:bg-green-800 active:scale-95 inline-block text-center"
           >
             Download
           </Link>
           <button 
-            className="px-6 py-2 rounded-md transition-all duration-200 cursor-pointer bg-green-600 text-white hover:bg-green-800 focus:ring-2 focus:ring-green-500 active:bg-green-900 active:scale-95"
+            className="px-6 py-2 rounded-md transition-all duration-200 cursor-pointer bg-green-600 text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 active:bg-green-800 active:scale-95"
             onClick={() => setIsContactModalOpen(true)}
           >
             Contact

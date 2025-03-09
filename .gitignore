@@ -29,3 +29,9 @@ node_modules
 # 忽略package-lock.json文件
 package-lock.json
 
+# 忽略dist文件夹
+dist
+
+# 忽略.cursorignore文件
+.cursorignore
+

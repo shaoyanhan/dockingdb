@@ -54,17 +54,17 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-r-2 border-green-700 border-l-2 border-transparent"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-r-2 border-green-600 border-l-2 border-transparent"></div>
             </div>
           )}
         </div>
       </div>
       
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-3">
-        <div className="text-green-700 mb-2 sm:mb-0 flex items-center">
+        <div className="text-green-600 mb-2 sm:mb-0 flex items-center">
           <span className="mr-1">Example:</span>
           <span 
-            className="cursor-pointer hover:underline hover:text-green-800 focus:text-green-900 focus:outline-none focus:ring-1 focus:ring-green-600 px-1 py-0.5 rounded-sm transition-colors"
+            className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("5JCN")}
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("5JCN")}
@@ -73,7 +73,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           </span>
           <span className="mx-1">,</span>
           <span 
-            className="cursor-pointer hover:underline hover:text-green-800 focus:text-green-900 focus:outline-none focus:ring-1 focus:ring-green-600 px-1 py-0.5 rounded-sm transition-colors"
+            className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("abscisic_acid")}
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("abscisic_acid")}
@@ -82,7 +82,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           </span>
           <span className="mx-1">,</span>
           <span 
-            className="cursor-pointer hover:underline hover:text-green-800 focus:text-green-900 focus:outline-none focus:ring-1 focus:ring-green-600 px-1 py-0.5 rounded-sm transition-colors"
+            className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("cytokinin dehydrogenase")}
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && handleExampleClick("cytokinin dehydrogenase")}
@@ -94,7 +94,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           <input 
             type="checkbox" 
             id="without-pdx" 
-            className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
+            className="w-5 h-5 mr-2 cursor-pointer accent-green-600"
             checked={withoutPDX}
             onChange={(e) => setWithoutPDX(e.target.checked)} 
           />
