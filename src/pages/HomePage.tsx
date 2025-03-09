@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -59,6 +59,22 @@ const cytokininData: MoleculeData[] = [
 const HomePage = () => {
   const navigate = useNavigate();
   
+  // Introduction section state
+  const [showIntro, setShowIntro] = useState(false);
+  const [showReferences, setShowReferences] = useState(false);
+  const introRef = useRef<HTMLDivElement>(null);
+
+  // Toggle functions
+  const toggleIntro = useCallback(() => {
+    setShowIntro(prev => !prev);
+    setShowReferences(false);
+  }, []);
+
+  const toggleReferences = useCallback(() => {
+    setShowReferences(prev => !prev);
+    setShowIntro(false);
+  }, []);
+  
   // 使用单一的viewMode状态来管理显示模式，不再需要多个状态变量
   const [viewMode, setViewMode] = useState<ViewMode>('main');
   
@@ -98,6 +114,89 @@ const HomePage = () => {
 
       {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-6">
+        {/* Introduction Section */}
+        <div className="mb-8 max-w-6xl mx-auto">
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg shadow-md p-5 border border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3">
+              <div className="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h2 className="font-semibold text-lg text-gray-800">DockingDB</h2>
+              </div>
+              <div className="flex space-x-3">
+                <button 
+                  onClick={toggleIntro}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-md ${showIntro ? 'bg-green-600 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+                >
+                  <div className="flex items-center space-x-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Introduction</span>
+                  </div>
+                </button>
+                <button 
+                  onClick={toggleReferences}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-md ${showReferences ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                >
+                  <div className="flex items-center space-x-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    <span>References</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            <div ref={introRef} className="overflow-hidden transition-all duration-500 ease-in-out">
+              {!showIntro && !showReferences && (
+                <div className="py-2 text-base text-gray-600 italic text-center font-bold"> 
+                  Click on Introduction or References to learn more about DockingDB.
+                </div>
+              )}
+              
+              {showIntro && (
+                <div className="mt-3 animate-fadeIn bg-white bg-opacity-60 p-4 rounded-md">
+                  <p className="text-gray-700 text-base leading-relaxed mb-4">
+                    <span className="font-semibold text-green-700">DockingDB</span> is a specialized reverse docking database integrating <span className="font-medium">5,794</span> experimentally resolved plant protein structures retrieved from the RCSB Protein Data Bank (PDB) as of May 2021. DockingDB is developed as an automated extension of UCSF DOCK6 (Allen et al., 2015), which addresses the scalability limitations of traditional molecular docking by implementing parallelized workflows for plant proteome-scale reverse virtual screening.
+                  </p>
+                  <p className="text-gray-700 text-base leading-relaxed mb-4">
+                    The pipeline automates preprocessing of input structures through a multi-step protocol: plant protein structures from PDB undergo removal of crystallographic waters and heteroatoms, followed by hydrogenation, residue standardization, and charge assignment using AMBER ff14SB parameters before conversion to MOL2 format; ligand-bound structures are stripped of small molecules prior to processing, while dehydrogenated PDB files are generated in parallel for pocket detection.
+                  </p>
+                  <p className="text-gray-700 text-base leading-relaxed">
+                    Pocket prediction employs context-specific strategies—sphgen-based clustering identifies the largest cavity for ligand-free structures, whereas ligand-proximal 8-Å spheres guide pocket definition in ligand-bound counterparts—executed via UCSF Chimera's Python API (Pettersen et al., 2004) to batch-process the above proteins into <span className="font-medium">18,795</span> dockable pockets. Ligand preprocessing standardizes PDB/MOL2/SMILES inputs into canonical MOL2 formats through hydrogen addition and AM1-BCC charge calculation, with a SMILES-hashed caching system eliminating redundant docking computations. This integrated approach enables full automation from raw structural data to dockable complexes, achieving a high throughput increase over manual DOCK6 operations while maintaining high pocket prediction accuracy against expert-curated benchmarks, thereby empowering large-scale discovery of phytohormone (including cytokine, auxin, brassinolide, abscisic acid, gibberellic acid, salicylic acid and strigolactone) interaction networks.
+                  </p>
+                </div>
+              )}
+              
+              {showReferences && (
+                <div className="mt-3 animate-fadeIn bg-white bg-opacity-60 p-4 rounded-md">
+                  <h3 className="font-medium text-gray-800 mb-3">References</h3>
+                  <ol className="list-decimal list-inside space-y-3 text-sm text-gray-700">
+                    <li className="pl-3 border-l-4 border-green-400 bg-green-50 p-3 rounded-md shadow-sm">
+                      <span className="text-green-700 font-medium">Guo YX, Liu F, Xu XD, Xu G, Ye SY, Shao YH, Kong Y, Su Z, Zhao, Q, Fu Q, Ma J, Song JM, Cai WG, Ming ZH & Chen LL.</span> Computational-experimental convergence in cytokinin signaling: reverse docking primes MD-guided discovery of novel binding proteins with genetic validation, Submitted.
+                      <div className="mt-2 text-sm italic text-red-600 flex items-center bg-red-50 p-2 rounded">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>If you used the data from the database, please cite this paper kindly!</span>
+                      </div>
+                    </li>
+                    <li className="pl-3 border-l-4 border-blue-300 p-3 rounded-md hover:bg-blue-50 transition-colors">
+                      <span className="font-medium">Allen WJ, Balius TE, Mukherjee S, Brozell SR, Moustakas DT, Lang PT, Case DA, Kuntz ID & Rizzo RC.</span> (2015). DOCK 6: Impact of new features and current docking performance. <span className="italic">Comput. Chem.</span>, 36(15), 1132-1156.
+                    </li>
+                    <li className="pl-3 border-l-4 border-blue-300 p-3 rounded-md hover:bg-blue-50 transition-colors">
+                      <span className="font-medium">Pettersen EF, Goddard TD, Huang CC, Couch GS, Greenblatt DM, Meng EC & Ferrin TE.</span> (2004). UCSF Chimera—a visualization system for exploratory research and analysis. <span className="italic">Comput. Chem</span>, 25(13), 1605-1612.
+                    </li>
+                  </ol>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <SearchBar onSearch={handleSearch} />
 
         {/* 添加可视化指示器，显示当前在哪个视图 */}
