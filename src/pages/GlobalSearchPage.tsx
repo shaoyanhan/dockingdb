@@ -8,6 +8,14 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
+import { 
+  TableState as TableStateType, 
+  deserializeTableState, 
+  saveStateToLocalStorage, 
+  getStateKey,
+  getStateFromLocalStorage,
+  serializeAllStateInfo
+} from '../utils/stateHelpers';
 
 // Define the table data type
 interface TableRow {
@@ -27,48 +35,68 @@ interface TableData {
   rows: TableRow[];
 }
 
-// Interface for the previous search state
+// Interface for the previous search state - using our utility type
 interface PreviousSearchState {
   previousSearch: boolean;
-  tableState: {
-    pageIndex: number;
-    rowsPerPage: number;
-    globalFilter: string;
-    withoutPDX: boolean;
-    manualPageIndex: string;
-  };
+  tableState: TableStateType;
 }
 
 const GlobalSearchPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const previousState = location.state as PreviousSearchState | undefined;
   const [searchParams, setSearchParams] = useSearchParams();
   
-  // Prevent initial loading when returning from structure page
   const isReturnFromStructure = useRef(false);
   const initialLoadComplete = useRef(false);
+  const forceRefreshRef = useRef(0);
   
-  // Check if we're returning from structure page with previous state
-  const previousState = location.state as PreviousSearchState | undefined;
+  // Get state from multiple sources in order of priority:
+  // 1. Location state (from navigate)
+  // 2. URL query parameters
+  // 3. localStorage
+  // 4. Default values
+  const urlState = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? deserializeTableState(query)?.tableState : null;
+  }, [searchParams]);
   
-  // Get query parameters, prioritizing state from structure page
-  const queryParam = previousState?.tableState?.globalFilter || searchParams.get('query') || '';
-  const withoutPDXParam = previousState?.tableState?.withoutPDX || searchParams.get('withoutPDX') === 'true';
-  const pageIndexParam = previousState?.tableState?.pageIndex || parseInt(searchParams.get('pageIndex') || '0', 10);
-  const rowsPerPageParam = previousState?.tableState?.rowsPerPage || parseInt(searchParams.get('rowsPerPage') || '30', 10);
-  const manualPageIndexParam = previousState?.tableState?.manualPageIndex || (pageIndexParam + 1).toString();
+  const localStorageState = useMemo(() => {
+    return getStateFromLocalStorage<TableStateType>(getStateKey('search'));
+  }, []);
   
-  // State management
+  // Initialize from URL params (for direct access via URL)
+  const queryParam = searchParams.get('query') || '';
+  const withoutPDXParam = searchParams.get('withoutPDX') === 'true';
+  const pageIndexParam = parseInt(searchParams.get('pageIndex') || '0', 10);
+  const rowsPerPageParam = parseInt(searchParams.get('rowsPerPage') || '10', 10);
+  const manualPageIndexParam = searchParams.get('manualPageIndex') || '1';
+  
+  // State initialization with priority order for direct initialization
+  const initialState = previousState?.tableState || urlState || localStorageState || {
+    pageIndex: pageIndexParam,
+    rowsPerPage: rowsPerPageParam,
+    globalFilter: queryParam,
+    withoutPDX: withoutPDXParam,
+    manualPageIndex: manualPageIndexParam
+  };
+  
+  // Table state
   const [tableData, setTableData] = useState<TableData>({ total: 0, rows: [] });
-  const [loading, setLoading] = useState(!previousState); // Don't show loading if we have previous state
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [withoutPDX, setWithoutPDX] = useState(withoutPDXParam);
-  const [globalFilter, setGlobalFilter] = useState(queryParam);
-  const [debouncedFilter, setDebouncedFilter] = useState(queryParam);
-  const [rowsPerPage, setRowsPerPage] = useState(rowsPerPageParam);
-  const [pageIndex, setPageIndex] = useState(pageIndexParam);
-  const [manualPageIndex, setManualPageIndex] = useState(manualPageIndexParam);
-  const [forceRefresh, setForceRefresh] = useState(0); // Add a force refresh counter
+  const [withoutPDX, setWithoutPDX] = useState(initialState.withoutPDX);
+  const [debouncedFilter, setDebouncedFilter] = useState(initialState.globalFilter || queryParam);
+  const [globalFilter, setGlobalFilter] = useState(initialState.globalFilter || queryParam);
+  const [pageIndex, setPageIndex] = useState(initialState.pageIndex);
+  const [rowsPerPage, setRowsPerPage] = useState(initialState.rowsPerPage);
+  const [manualPageIndex, setManualPageIndex] = useState(initialState.manualPageIndex);
+  const [forceRefresh, setForceRefresh] = useState(0);
+  
+  // Update forceRefreshRef when forceRefresh changes
+  useEffect(() => {
+    forceRefreshRef.current = forceRefresh;
+  }, [forceRefresh]);
   
   // Track the last successful request to prevent outdated data
   const lastSuccessfulRequest = useRef({
@@ -87,6 +115,15 @@ const GlobalSearchPage = () => {
     data: TableData;
   } | null>(null);
   
+  // Keep track of the current state for saving
+  const currentState = useMemo(() => ({
+    pageIndex,
+    rowsPerPage,
+    globalFilter: debouncedFilter,
+    withoutPDX,
+    manualPageIndex
+  }), [pageIndex, rowsPerPage, debouncedFilter, withoutPDX, manualPageIndex]);
+  
   // Handle returning from structure page - this runs ONCE
   useEffect(() => {
     if (previousState?.previousSearch && !isReturnFromStructure.current) {
@@ -96,9 +133,10 @@ const GlobalSearchPage = () => {
       // Update URL params without triggering a navigation
       setSearchParams({
         query: previousState.tableState.globalFilter,
-        withoutPDX: previousState.tableState.withoutPDX.toString(),
-        pageIndex: previousState.tableState.pageIndex.toString(),
-        rowsPerPage: previousState.tableState.rowsPerPage.toString()
+        without_pdx: previousState.tableState.withoutPDX.toString(),
+        page_index: previousState.tableState.pageIndex.toString(),
+        page_size: previousState.tableState.rowsPerPage.toString(),
+        manualPageIndex: previousState.tableState.manualPageIndex
       }, { replace: true });
       
       // Clear location state to prevent issues on page refresh
@@ -145,6 +183,31 @@ const GlobalSearchPage = () => {
     return () => clearTimeout(timer);
   }, [globalFilter]);
   
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    if (initialLoadComplete.current) {
+      const stateKey = getStateKey('search');
+      saveStateToLocalStorage(stateKey, currentState);
+      
+      // Update URL params without triggering a navigation if not returning from structure page
+      if (!isReturnFromStructure.current) {
+        // Ensure we're using the parameter names that match the API
+        setSearchParams({
+          query: debouncedFilter,
+          without_pdx: withoutPDX.toString(),
+          page_index: pageIndex.toString(),
+          page_size: rowsPerPage.toString(),
+          manualPageIndex: manualPageIndex
+        }, { replace: true });
+      }
+      
+      // Reset the return flag after first render
+      if (isReturnFromStructure.current && forceRefreshRef.current === forceRefresh) {
+        isReturnFromStructure.current = false;
+      }
+    }
+  }, [currentState, setSearchParams, forceRefresh]);
+  
   // Fetch data from the backend
   const fetchSearchResults = async () => {
     // Skip fetch if we're returning from structure page and already have the data
@@ -173,61 +236,46 @@ const GlobalSearchPage = () => {
       if (rowsPerPage !== structRowsPerPage) {
         setRowsPerPage(structRowsPerPage);
       }
-      
-      initialLoadComplete.current = true;
     }
-    
-    // Check if this is a duplicate request
-    if (lastSuccessfulRequest.current.query === debouncedFilter &&
-        lastSuccessfulRequest.current.withoutPDX === withoutPDX &&
-        lastSuccessfulRequest.current.pageIndex === pageIndex &&
-        lastSuccessfulRequest.current.pageSize === rowsPerPage) {
-      
-      // We've already made this exact request successfully, don't duplicate
-      console.log('Skipping duplicate request');
-      return;
-    }
-    
-    // Check if we have cached results that match current search parameters
-    if (cachedSearchResults && 
-        cachedSearchResults.query === debouncedFilter && 
-        cachedSearchResults.withoutPDX === withoutPDX && 
-        cachedSearchResults.pageIndex === pageIndex && 
-        cachedSearchResults.pageSize === rowsPerPage) {
-      console.log('Using cached results');
-      setTableData(cachedSearchResults.data);
-      return;
-    }
-    
-    // Create a request ID for logging
-    const requestId = `${debouncedFilter}-${withoutPDX}-${pageIndex}-${rowsPerPage}-${Date.now()}`;
-    console.log(`Starting request ${requestId} for page ${pageIndex}`);
     
     setLoading(true);
     setError(null);
     
+    // Use debouncedFilter for the search query as it contains the most current filter value
+    const searchQuery = debouncedFilter;
+    const params = new URLSearchParams({
+      query: searchQuery,
+      without_pdx: withoutPDX.toString(),
+      page_index: pageIndex.toString(),
+      page_size: rowsPerPage.toString()
+    });
+    
+    // Fix the URL with correct path and parameter format
+    const apiUrl = `http://127.0.0.1:8000/api/search/?${params}`;
+    
+    console.log(`Fetching search results:`, {
+      query: searchQuery,
+      without_pdx: withoutPDX,
+      page_index: pageIndex,
+      page_size: rowsPerPage,
+      url: apiUrl
+    });
+    
     try {
-      // const url = new URL('https://cbi.gxu.edu.cn/DockingDB/DockingDB_web_backend/api/search/');
-      const url = new URL('http://127.0.0.1:8000/api/search/');
-      url.searchParams.append('query', debouncedFilter);
-      url.searchParams.append('without_pdx', withoutPDX.toString());
-      url.searchParams.append('page_index', pageIndex.toString());
-      url.searchParams.append('page_size', rowsPerPage.toString());
-      
-      const response = await fetch(url.toString());
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error(`Error fetching data: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log(`Request ${requestId} successful, received data for page ${pageIndex}`);
+      console.log(`Request successful, received data for page ${pageIndex}`);
       
-      // Update last successful request
+      // Update last successful request - update parameter names here too
       lastSuccessfulRequest.current = {
-        query: debouncedFilter,
-        withoutPDX: withoutPDX,
-        pageIndex: pageIndex,
+        query: searchQuery,
+        withoutPDX,
+        pageIndex,
         pageSize: rowsPerPage
       };
       
@@ -235,7 +283,7 @@ const GlobalSearchPage = () => {
       
       // Cache the results
       setCachedSearchResults({
-        query: debouncedFilter,
+        query: searchQuery,
         withoutPDX,
         pageIndex,
         pageSize: rowsPerPage,
@@ -244,10 +292,10 @@ const GlobalSearchPage = () => {
       
       // Update URL params silently
       setSearchParams({
-        query: debouncedFilter,
-        withoutPDX: withoutPDX.toString(),
-        pageIndex: pageIndex.toString(),
-        rowsPerPage: rowsPerPage.toString()
+        query: searchQuery,
+        without_pdx: withoutPDX.toString(),
+        page_index: pageIndex.toString(),
+        page_size: rowsPerPage.toString()
       }, { replace: true });
       
       // Mark as fully loaded when returning from structure and final data loaded
@@ -255,7 +303,7 @@ const GlobalSearchPage = () => {
         initialLoadComplete.current = true;
       }
     } catch (err) {
-      console.error(`Request ${requestId} failed:`, err);
+      console.error(`Request failed:`, err);
       setError('Failed to load search results. Please try again later.');
     } finally {
       setLoading(false);
@@ -302,14 +350,41 @@ const GlobalSearchPage = () => {
       header: 'Pocket ID',
       cell: info => {
         const row = info.row.original;
+        
+        // 构造结构信息对象
+        const structureInfo = {
+          pdbId: row.pdb_id,
+          structTitle: row.struct_title,
+          paperTitle: row.paper_title,
+          paperLink: row.paper_link
+        };
+        
+        // 使用新的函数将所有状态信息（包括结构信息）序列化到URL参数中
+        const allParams = serializeAllStateInfo(
+          {
+            pageIndex,
+            rowsPerPage,
+            globalFilter: debouncedFilter,
+            withoutPDX,
+            manualPageIndex
+          },
+          'search',
+          structureInfo
+        );
+        
+        // Build full URL with state
+        const url = `/structure/${row.hormone_type}/${info.getValue()}?${allParams}`;
+        const baseUrl = window.location.origin;
+        const fullUrl = `${baseUrl}/DockingDB${url}`;
+        
         return (
           <a 
-            href={`/DockingDB/structure/${row.hormone_type}/${info.getValue()}`} 
+            href={fullUrl} 
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();
               // Navigate to structure page
-              navigate(`/structure/${row.hormone_type}/${info.getValue()}`, {
+              navigate(url, {
                 state: {
                   pocketId: info.getValue(),
                   pdbId: row.pdb_id,
@@ -323,7 +398,7 @@ const GlobalSearchPage = () => {
                     withoutPDX,
                     manualPageIndex
                   },
-                  sourcePage: 'search' // 添加来源页面标识
+                  sourcePage: 'search'
                 }
               });
             }}

@@ -40,7 +40,7 @@ const ClusterMap = () => {
     const script = document.createElement('script');
     script.id = 'clustrmaps';
     script.type = 'text/javascript';
-    script.src = '//cdn.clustrmaps.com/map_v2.js?cl=ffffff&w=a&t=n&d=kh3SKgdQcoTu97bcmCGU0iL6eoy5_cBCqiHY0o2bL0c&co=15803d';
+    script.src = '//cdn.clustrmaps.com/map_v2.js?cl=ffffff&w=a&t=n&d=kh3SKgdQcoTu97bcmCGU0iL6eoy5_cBCqiHY0o2bL0c&co=276536';
     script.async = true;
 
     // 将脚本添加到容器中

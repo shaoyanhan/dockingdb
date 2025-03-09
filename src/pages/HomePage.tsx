@@ -86,8 +86,8 @@ const HomePage = () => {
     console.log('Searching for:', query, 'Without PDX:', withoutPDX);
     
     if (query.trim()) {
-      // 如果有查询内容，导航到全局搜索页面
-      navigate(`/search?query=${encodeURIComponent(query)}&withoutPDX=${withoutPDX}`);
+      // 如果有查询内容，导航到全局搜索页面，并确保使用正确的参数名
+      navigate(`/search?query=${encodeURIComponent(query)}&without_pdx=${withoutPDX}&page_index=0&page_size=10&manualPageIndex=1`);
     } else {
       // 如果查询为空，重置为主视图
       setViewMode('main');

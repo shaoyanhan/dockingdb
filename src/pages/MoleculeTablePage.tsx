@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import {
@@ -11,6 +11,14 @@ import {
   flexRender,
   ColumnFiltersState,
 } from '@tanstack/react-table';
+import { 
+  TableState as TableStateType, 
+  serializeAllStateInfo, 
+  deserializeTableState, 
+  saveStateToLocalStorage, 
+  getStateKey,
+  getStateFromLocalStorage 
+} from '../utils/stateHelpers';
 
 // 定义表格数据类型
 interface TableRow {
@@ -44,37 +52,102 @@ interface TableData {
   rows: TableRow[];
 }
 
-// 定义表格状态类型
-interface TableState {
-  pageIndex: number;
-  rowsPerPage: number;
-  globalFilter: string;
-  withoutPDX: boolean;
-  manualPageIndex: string; // 添加手动页码输入框的状态
-}
-
 const MoleculeTablePage = () => {
   // 获取分子ID，这个ID是HomePage.tsx中点击分子卡片时传递过来的，通过useParams获取
   const { moleculeId } = useParams<{ moleculeId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const savedState = location.state as TableState | undefined;
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // 是否已经从结构页面返回的标志
+  const isReturnFromStructure = useRef(false);
+  
+  // Get state from multiple sources in order of priority:
+  // 1. Location state (from navigate)
+  // 2. URL query parameters
+  // 3. localStorage
+  // 4. Default values
+  const locationState = location.state as TableStateType | undefined;
+  const urlState = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? deserializeTableState(query)?.tableState : null;
+  }, [searchParams]);
+  
+  const localStorageState = useMemo(() => {
+    if (moleculeId) {
+      return getStateFromLocalStorage<TableStateType>(getStateKey('table', moleculeId));
+    }
+    return null;
+  }, [moleculeId]);
   
   // 是否已初始化表格
   const [isInitialized, setIsInitialized] = useState(false);
   // 跟踪筛选条件变化
   const [filterChanged, setFilterChanged] = useState(false);
   
-  // 状态管理，从location.state恢复状态
+  // State initialization with priority order
+  const initialState = locationState || urlState || localStorageState || {
+    pageIndex: 0,
+    rowsPerPage: 10,
+    globalFilter: '',
+    withoutPDX: false,
+    manualPageIndex: '1'
+  };
+  
+  // 状态管理，从获取的状态恢复
   const [tableData, setTableData] = useState<TableData>({ total: 0, rows: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [withoutPDX, setWithoutPDX] = useState(savedState?.withoutPDX || false);
-  const [globalFilter, setGlobalFilter] = useState(savedState?.globalFilter || '');
+  const [withoutPDX, setWithoutPDX] = useState(initialState.withoutPDX);
+  const [globalFilter, setGlobalFilter] = useState(initialState.globalFilter);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [rowsPerPage, setRowsPerPage] = useState(savedState?.rowsPerPage || 10);
-  const [pageIndex, setPageIndex] = useState(savedState?.pageIndex || 0);
-  const [manualPageIndex, setManualPageIndex] = useState(savedState?.manualPageIndex || '1');
+  const [rowsPerPage, setRowsPerPage] = useState(initialState.rowsPerPage);
+  const [pageIndex, setPageIndex] = useState(initialState.pageIndex);
+  const [manualPageIndex, setManualPageIndex] = useState(initialState.manualPageIndex);
+  
+  // Keep track of the current state for saving
+  const currentState = useMemo(() => ({
+    pageIndex,
+    rowsPerPage,
+    globalFilter,
+    withoutPDX,
+    manualPageIndex
+  }), [pageIndex, rowsPerPage, globalFilter, withoutPDX, manualPageIndex]);
+  
+  // Save state to localStorage when it changes
+  useEffect(() => {
+    if (isInitialized && moleculeId) {
+      const stateKey = getStateKey('table', moleculeId);
+      saveStateToLocalStorage(stateKey, currentState);
+      
+      // Update URL params without triggering a navigation
+      if (!isReturnFromStructure.current) {
+        setSearchParams({
+          pageIndex: pageIndex.toString(),
+          rowsPerPage: rowsPerPage.toString(),
+          globalFilter,
+          withoutPDX: withoutPDX.toString(),
+          manualPageIndex
+        }, { replace: true });
+      }
+      
+      // Reset the return flag after first render
+      if (isReturnFromStructure.current) {
+        isReturnFromStructure.current = false;
+      }
+    }
+  }, [currentState, moleculeId, isInitialized, setSearchParams]);
+  
+  // Update URL when returning from structure page
+  useEffect(() => {
+    if (locationState && !isReturnFromStructure.current) {
+      isReturnFromStructure.current = true;
+      console.log('Returning to table page with state:', locationState);
+      
+      // Clear location state to prevent issues on page refresh
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+    }
+  }, [locationState]);
   
   // 将分子ID转换为API路径中需要的格式
   const formatMoleculeNameForApi = (name: string): string => { // 这是一个箭头函数（=>），接收一个参数 name，类型为 string。
@@ -134,7 +207,7 @@ const MoleculeTablePage = () => {
 
   // 当globalFilter变化时，标记筛选条件已变化
   useEffect(() => {
-    if (isInitialized && globalFilter !== (savedState?.globalFilter || '')) {
+    if (isInitialized && globalFilter !== (locationState?.globalFilter || '')) {
       setFilterChanged(true);
     }
   }, [globalFilter, isInitialized]);
@@ -165,14 +238,41 @@ const MoleculeTablePage = () => {
       header: 'Pocket ID',
       cell: info => {
         const row = info.row.original;
+        
+        // 构造结构信息对象
+        const structureInfo = {
+          pdbId: row.pdbId,
+          structTitle: row.structTitle,
+          paperTitle: row.paperTitle,
+          paperLink: row.paperLink
+        };
+        
+        // 使用新的函数将所有状态信息（包括结构信息）序列化到URL参数中
+        const allParams = serializeAllStateInfo(
+          {
+            pageIndex,
+            rowsPerPage,
+            globalFilter,
+            withoutPDX,
+            manualPageIndex
+          },
+          'table',
+          structureInfo
+        );
+        
+        // Build full URL with state
+        const url = `/structure/${moleculeId}/${info.getValue()}?${allParams}`;
+        const baseUrl = window.location.origin;
+        const fullUrl = `${baseUrl}/DockingDB${url}`;
+        
         return (
           <a 
-            href={`/DockingDB/structure/${moleculeId}/${info.getValue()}`} 
+            href={fullUrl} 
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();
               // 导航到结构页面，同时保存当前表格状态
-              navigate(`/structure/${moleculeId}/${info.getValue()}`, {
+              navigate(url, {
                 state: {
                   // 结构信息
                   pocketId: info.getValue(),
@@ -186,9 +286,9 @@ const MoleculeTablePage = () => {
                     rowsPerPage,
                     globalFilter,
                     withoutPDX,
-                    manualPageIndex // 添加手动页码输入框的状态
+                    manualPageIndex
                   },
-                  sourcePage: 'table' // 添加来源页面标识
+                  sourcePage: 'table'
                 }
               });
             }}

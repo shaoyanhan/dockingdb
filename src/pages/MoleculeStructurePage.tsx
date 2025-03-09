@@ -1,20 +1,20 @@
 import { useState, useEffect, createContext } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import MolstarViewer from '../components/MolstarViewer';
+import { 
+  TableState, 
+  deserializeTableState,
+  deserializeStructureInfo,
+  SourcePage
+} from '../utils/stateHelpers';
 
 // 创建全屏状态上下文，用于在组件之间共享
 export const FullscreenContext = createContext<boolean>(false);
 
-// 从MoleculeTablePage传递的表格状态类型
-interface TableState {
-  pageIndex: number;
-  rowsPerPage: number;
-  globalFilter: string;
-  withoutPDX: boolean;
-  manualPageIndex: string; // 添加手动页码输入框状态
-}
+// No need for a redundant interface
+// interface TableState extends TableStateType {}
 
 interface StructurePageState {
   pocketId: string;
@@ -22,8 +22,8 @@ interface StructurePageState {
   structTitle: string;
   paperTitle: string;
   paperLink: string;
-  tableState?: TableState; // 添加可选的表格状态
-  sourcePage?: 'table' | 'search'; // 添加来源页面标识
+  tableState?: TableState; // Using imported TableState directly
+  sourcePage?: SourcePage; // 添加来源页面标识
 }
 
 interface MolecularData {
@@ -36,18 +36,71 @@ interface MolecularData {
   formalCharge: string;
 }
 
+// Define types for table rows
+interface TableSearchRow {
+  pocket_id: string;
+  pdb_id: string;
+  struct_title: string;
+  paper_title: string;
+  paper_link: string;
+}
+
+interface TableMoleculeRow {
+  pocketId: string;
+  pdbId: string;
+  structTitle: string;
+  paperTitle: string;
+  paperLink: string;
+}
+
 const MoleculeStructurePage = () => {
   const { moleculeId, pocketId } = useParams<{ moleculeId: string, pocketId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as StructurePageState | undefined;
+  const [searchParams] = useSearchParams();
+  
+  // Attempt to get state from both location.state and URL query parameters
+  const locationState = location.state as StructurePageState | undefined;
+  
+  // If we don't have location state, try to get it from URL query parameters
+  const urlState = (() => {
+    if (!locationState && searchParams.toString()) {
+      const stateFromUrl = deserializeTableState(searchParams.toString());
+      const structureInfoFromUrl = deserializeStructureInfo(searchParams.toString());
+      
+      if (stateFromUrl) {
+        // Create a partial structure page state from URL parameters
+        return {
+          pocketId: pocketId || '',
+          pdbId: structureInfoFromUrl?.pdbId || '',
+          structTitle: structureInfoFromUrl?.structTitle || '',
+          paperTitle: structureInfoFromUrl?.paperTitle || '',
+          paperLink: structureInfoFromUrl?.paperLink || '',
+          tableState: stateFromUrl.tableState,
+          sourcePage: stateFromUrl.sourcePage
+        } as StructurePageState;
+      }
+    }
+    return undefined;
+  })();
+  
+  // Use location state or URL state
+  const state = locationState || urlState;
+  
+  // Local state to store fetched structure data when not available in URL state
+  const [structureData, setStructureData] = useState<{
+    pdbId: string;
+    structTitle: string;
+    paperTitle: string;
+    paperLink: string;
+  } | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [molecularData, setMolecularData] = useState<MolecularData | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // 将分子ID转换为API路径中需要的格式
+  // Format molecule name for API calls
   const formatMoleculeNameForApi = (name: string): string => {
     if (!name) return '';
     
@@ -60,6 +113,84 @@ const MoleculeStructurePage = () => {
       return name.toLowerCase();
     }
   };
+
+  // Fetch structure data when only pocketId and moleculeId are available from URL
+  const fetchStructureData = async () => {
+    // If we already have structure info from URL params, no need to fetch
+    if (urlState && (urlState.pdbId || urlState.structTitle || urlState.paperTitle || urlState.paperLink)) {
+      console.log('Using structure info from URL parameters');
+      return;
+    }
+    
+    if (!moleculeId || !pocketId) return;
+    
+    try {
+      // Determine the source page type to find the correct API
+      const isFromSearchPage = state?.sourcePage === 'search' || (moleculeId && moleculeId.includes('_'));
+      const formattedName = formatMoleculeNameForApi(moleculeId);
+      
+      // Construct API URL based on the source
+      let apiUrl;
+      if (isFromSearchPage) {
+        // For search page, use global search API
+        apiUrl = `https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/json/global_search/statistic_result_sorted.json`;
+      } else {
+        // For table page, use molecule-specific API
+        const fileName = state?.tableState?.withoutPDX ? 'statistic_result_bang_sorted' : 'statistic_result_sorted';
+        apiUrl = `https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/json/${formattedName}/${fileName}.json`;
+      }
+      
+      // Fetch the data
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch structure data');
+      }
+      
+      const data = await response.json();
+      
+      // Find the matching row by pocketId
+      if (isFromSearchPage) {
+        // Search page has different property names
+        const searchRow = data.rows.find((row: TableSearchRow) => 
+          row.pocket_id === pocketId
+        );
+        
+        if (searchRow) {
+          setStructureData({
+            pdbId: searchRow.pdb_id,
+            structTitle: searchRow.struct_title,
+            paperTitle: searchRow.paper_title,
+            paperLink: searchRow.paper_link
+          });
+        }
+      } else {
+        // Table page property names
+        const tableRow = data.rows.find((row: TableMoleculeRow) => 
+          row.pocketId === pocketId
+        );
+        
+        if (tableRow) {
+          setStructureData({
+            pdbId: tableRow.pdbId,
+            structTitle: tableRow.structTitle,
+            paperTitle: tableRow.paperTitle,
+            paperLink: tableRow.paperLink
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching structure data:', error);
+      // Don't set error state as this is just supplementary information
+    }
+  };
+
+  // Call fetchStructureData when there's only URL state
+  useEffect(() => {
+    // Only fetch if we have URL state without complete structure information
+    if (urlState && !locationState && !structureData) {
+      fetchStructureData();
+    }
+  }, [urlState, locationState, structureData]);
 
   // 获取PDB文件和MOL2文件的URL
   const getPdbUrl = (pdbId: string): string => {
@@ -163,6 +294,12 @@ const MoleculeStructurePage = () => {
     }
   };
 
+  // Use state or fallback to structureData
+  const effectivePdbId = state?.pdbId || structureData?.pdbId || '';
+  const effectiveStructTitle = state?.structTitle || structureData?.structTitle || '';
+  const effectivePaperTitle = state?.paperTitle || structureData?.paperTitle || '';
+  const effectivePaperLink = state?.paperLink || structureData?.paperLink || '';
+
   return (
     <FullscreenContext.Provider value={isFullscreen}>
       <div className={`min-h-screen flex flex-col bg-white ${isFullscreen ? 'overflow-hidden' : ''}`}>
@@ -211,7 +348,7 @@ const MoleculeStructurePage = () => {
                 </div>
               ) : (
                 <MolstarViewer 
-                  pdbFilePath={getPdbUrl(state?.pdbId || '')} 
+                  pdbFilePath={getPdbUrl(effectivePdbId)} 
                   mol2FilePath={getMol2Url(moleculeId || '', pocketId || '')}
                   height={isFullscreen ? "100vh" : "100%"}
                   onFullscreenChange={handleFullscreenChange}
@@ -244,7 +381,7 @@ const MoleculeStructurePage = () => {
                           </svg>
                           PDB ID
                         </div>
-                        <div className="font-medium text-lg">{state?.pdbId || 'N/A'}</div>
+                        <div className="font-medium text-lg">{effectivePdbId || 'N/A'}</div>
                       </div>
                       
                       <div>
@@ -254,7 +391,7 @@ const MoleculeStructurePage = () => {
                           </svg>
                           Structure Title
                         </div>
-                        <div className="font-medium mt-1 bg-gray-50 p-2 rounded">{state?.structTitle || 'N/A'}</div>
+                        <div className="font-medium mt-1 bg-gray-50 p-2 rounded">{effectiveStructTitle || 'N/A'}</div>
                       </div>
                       
                       <div>
@@ -265,12 +402,12 @@ const MoleculeStructurePage = () => {
                           PDB DOI
                         </div>
                         <a 
-                          href={getPdbDoiUrl(state?.pdbId || '')} 
+                          href={getPdbDoiUrl(effectivePdbId)} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 hover:underline font-medium mt-1 inline-block bg-blue-50 px-2 py-1 rounded"
                         >
-                          {getPdbDoiUrl(state?.pdbId || '')}
+                          {getPdbDoiUrl(effectivePdbId)}
                         </a>
                       </div>
                     </div>
@@ -338,7 +475,7 @@ const MoleculeStructurePage = () => {
                           PDB File (Protein Structure)
                         </div>
                         <button
-                          onClick={() => handleDownload(getPdbUrl(state?.pdbId || ''), `${state?.pdbId || 'protein'}_rec_NoH.pdb`)}
+                          onClick={() => handleDownload(getPdbUrl(effectivePdbId), `${effectivePdbId}_rec_NoH.pdb`)}
                           className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded flex items-center justify-center transition-colors"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -382,12 +519,12 @@ const MoleculeStructurePage = () => {
                         Paper Title
                       </div>
                       <a 
-                        href={state?.paperLink} 
+                        href={effectivePaperLink} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                       >
-                        {state?.paperTitle || 'N/A'}
+                        {effectivePaperTitle || 'N/A'}
                       </a>
                     </div>
                   </div>
