@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Tooltip from './Tooltip';
 
 interface SearchBarProps {
   onSearch?: (query: string, withoutPDX: boolean) => void;
@@ -47,7 +48,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
         <div className="relative flex-grow">
           <input
             type="text"
-            placeholder="Search ID or any text ..."
+            placeholder="Search ID or any text for docking results ..."
             className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -91,19 +92,27 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           </span>
         </div>
         <div className="flex items-center">
-          <input 
-            type="checkbox" 
-            id="without-pdx" 
-            className="w-5 h-5 mr-2 cursor-pointer accent-green-600"
-            checked={withoutPDX}
-            onChange={(e) => setWithoutPDX(e.target.checked)} 
-          />
-          <label 
-            htmlFor="without-pdx" 
-            className="text-black text-lg cursor-pointer"
+          <Tooltip 
+            content="Filter out docking results containing PDX compounds"
+            position="bottom"
+            className="flex items-center"
           >
-            Without PDX
-          </label>
+            <div className="flex items-center">
+              <input 
+                type="checkbox" 
+                id="without-pdx" 
+                className="w-5 h-5 mr-2 cursor-pointer accent-green-600"
+                checked={withoutPDX}
+                onChange={(e) => setWithoutPDX(e.target.checked)} 
+              />
+              <label 
+                htmlFor="without-pdx" 
+                className="text-black text-lg cursor-pointer"
+              >
+                Without PDX
+              </label>
+            </div>
+          </Tooltip>
         </div>
       </div>
     </div>

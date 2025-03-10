@@ -4,6 +4,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import SearchBar from '../components/SearchBar';
 import MoleculeCard from '../components/MoleculeCard';
+import Tooltip from '../components/Tooltip';
 
 // 导入图片
 import CytokininsImage from '../assets/images/Cytokinins.png';
@@ -22,6 +23,7 @@ import cZImage from '../assets/images/cZ.png';
 import BAImage from '../assets/images/BA.png';
 import DiphenylureaImage from '../assets/images/Diphenylurea.png';
 import TDImage from '../assets/images/TD.png';
+import DZImage from '../assets/images/DZ.png';
 
 // 定义视图模式类型
 type ViewMode = 'main' | 'cytokinin';
@@ -44,14 +46,14 @@ const mainMoleculeData: MoleculeData[] = [
   { id: 'Strigolactone', src: StrigolactoneImage },
 ];
 
-// Cytokinins二级数据
+// Cytokinins二级数据 - 重新排序并添加DZ
 const cytokininData: MoleculeData[] = [
-  { id: 'Cytokinins', src: CytokininsImage }, // 保留Cytokinins作为父类别
+  { id: 'KIN', src: KinImage },
   { id: 'iP', src: iPImage },
-  { id: 'Kin', src: KinImage },
+  { id: 'BA', src: BAImage },
   { id: 'tZ', src: tZImage },
   { id: 'cZ', src: cZImage },
-  { id: 'BA', src: BAImage },
+  { id: 'DZ', src: DZImage },
   { id: 'Diphenylurea', src: DiphenylureaImage },
   { id: 'TD', src: TDImage },
 ];
@@ -101,12 +103,82 @@ const HomePage = () => {
     // 处理Cytokinins卡片的特殊逻辑
     if (id === 'Cytokinins') {
       // 切换视图模式
-      setViewMode(prevMode => prevMode === 'main' ? 'cytokinin' : 'main');
+      setViewMode('cytokinin');
+    } else if (id === 'TD') {
+      // TD卡片不导航 - 我们会在卡片组件中处理禁用状态
+      return;
     } else {
       // 其他卡片直接导航到表格页面
       navigate(`/table/${id}`);
     }
   }, [navigate, viewMode]);
+
+  const renderCytokininCard = useCallback((molecule: MoleculeData) => {
+    // 为Cytokinins卡片添加特殊处理
+    if (molecule.id === 'Cytokinins') {
+      return (
+        <Tooltip 
+          key={`${viewMode}-${molecule.id}`}
+          content="Click to view its subclasses"
+          position="top"
+          className="block"
+        >
+          <MoleculeCard 
+            id={molecule.id} 
+            imageSrc={molecule.src} 
+            isSelected={false}
+            isSubItem={false}
+            onClick={handleCardClick}
+          />
+        </Tooltip>
+      );
+    }
+    
+    return (
+      <MoleculeCard 
+        key={`${viewMode}-${molecule.id}`}
+        id={molecule.id} 
+        imageSrc={molecule.src} 
+        isSelected={false}
+        isSubItem={false}
+        onClick={handleCardClick}
+      />
+    );
+  }, [viewMode, handleCardClick]);
+
+  const renderCytokininSubCard = useCallback((molecule: MoleculeData) => {
+    if (molecule.id === 'TD') {
+      return (
+        <Tooltip 
+          key={`${viewMode}-${molecule.id}`}
+          content="Waiting for data update"
+          position="top"
+          className="block"
+        >
+          <div className="opacity-70 cursor-not-allowed">
+            <MoleculeCard 
+              id={molecule.id} 
+              imageSrc={molecule.src} 
+              isSelected={false}
+              isSubItem={true}
+              onClick={() => {}}
+            />
+          </div>
+        </Tooltip>
+      );
+    }
+    
+    return (
+      <MoleculeCard 
+        key={`${viewMode}-${molecule.id}`}
+        id={molecule.id} 
+        imageSrc={molecule.src} 
+        isSelected={false}
+        isSubItem={true}
+        onClick={handleCardClick}
+      />
+    );
+  }, [viewMode, handleCardClick]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
@@ -204,9 +276,9 @@ const HomePage = () => {
           {viewMode === 'cytokinin' && (
             <button 
               onClick={() => setViewMode('main')}
-              className="flex items-center text-green-700 font-medium hover:text-green-900 transition-colors"
+              className="flex items-center bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform transition-all duration-300 hover:scale-105 font-medium"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 animate-pulse-slow" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
               </svg>
               Back to main
@@ -216,16 +288,10 @@ const HomePage = () => {
 
         {/* Molecule Cards Grid - 使用memo组件和高效状态管理提高性能 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mb-12 max-w-6xl mx-auto">
-          {currentMoleculeData.map((molecule) => (
-            <MoleculeCard 
-              key={`${viewMode}-${molecule.id}`}
-              id={molecule.id} 
-              imageSrc={molecule.src} 
-              isSelected={molecule.id === 'Cytokinins' && viewMode === 'cytokinin'}
-              isSubItem={viewMode === 'cytokinin' && molecule.id !== 'Cytokinins'}
-              onClick={handleCardClick}
-            />
-          ))}
+          {viewMode === 'main' 
+            ? currentMoleculeData.map(renderCytokininCard)
+            : currentMoleculeData.map(renderCytokininSubCard)
+          }
         </div>
       </main>
 

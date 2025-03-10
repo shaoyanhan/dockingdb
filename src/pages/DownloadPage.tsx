@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Tooltip from '../components/Tooltip';
 
 // 定义通知类型
 interface Notification {
@@ -11,20 +12,21 @@ interface Notification {
 
 // 表格文件数据
 const tableFiles = [
-  { id: 1, name: 'Abscisic acid', filename: 'abscisic_acid.csv', size: '4.6MB' },
-  { id: 2, name: 'Auxin', filename: 'auxin.csv', size: '4.6MB' },
-  { id: 3, name: 'Ba', filename: 'ba.csv', size: '4.6MB' },
-  { id: 4, name: 'Brassinolide', filename: 'brassinolide.csv', size: '4.4MB' },
-  { id: 5, name: 'Cz', filename: 'cz.csv', size: '4.6MB' },
-  { id: 6, name: 'Diphenylurea', filename: 'diphenylurea.csv', size: '4.5MB' },
-  { id: 7, name: 'Gibberellic acid', filename: 'gibberellic_acid.csv', size: '4.6MB' },
-  { id: 8, name: 'IP', filename: 'ip.csv', size: '4.6MB' },
-  { id: 9, name: 'Jasmonic acid', filename: 'jasmonic_acid.csv', size: '4.6MB' },
-  { id: 10, name: 'Kin', filename: 'kin.csv', size: '4.6MB' },
-  { id: 11, name: 'Salicylic acid', filename: 'salicylic_acid.csv', size: '4.6MB' },
-  { id: 12, name: 'Strigolactone', filename: 'strigolactone.csv', size: '4.6MB' },
-  { id: 13, name: 'Td', filename: 'td.csv', size: '4.6MB' },
-  { id: 14, name: 'Tz', filename: 'tz.csv', size: '4.6MB' },
+  { id: 1, name: 'KIN', filename: 'kin.csv', size: '4.6MB' },
+  { id: 2, name: 'iP', filename: 'ip.csv', size: '4.6MB' },
+  { id: 3, name: 'BA', filename: 'ba.csv', size: '4.6MB' },
+  { id: 4, name: 'tZ', filename: 'tz.csv', size: '4.6MB' },
+  { id: 5, name: 'cZ', filename: 'cz.csv', size: '4.6MB' },
+  { id: 6, name: 'DZ', filename: 'dz.csv', size: '4.6MB' },
+  { id: 7, name: 'Diphenylurea', filename: 'diphenylurea.csv', size: '4.5MB' },
+  { id: 8, name: 'TD', filename: 'td.csv', size: '4.6MB' },
+  { id: 9, name: 'Auxin', filename: 'auxin.csv', size: '4.6MB' },
+  { id: 10, name: 'Brassinolide', filename: 'brassinolide.csv', size: '4.4MB' },
+  { id: 11, name: 'Abscisic acid', filename: 'abscisic_acid.csv', size: '4.6MB' },
+  { id: 12, name: 'Gibberellic acid', filename: 'gibberellic_acid.csv', size: '4.6MB' },
+  { id: 13, name: 'Salicylic acid', filename: 'salicylic_acid.csv', size: '4.6MB' },
+  { id: 14, name: 'Jasmonic acid', filename: 'jasmonic_acid.csv', size: '4.6MB' },
+  { id: 15, name: 'Strigolactone', filename: 'strigolactone.csv', size: '4.6MB' }
 ];
 
 // 结构文件数据
@@ -118,6 +120,79 @@ const DownloadPage = () => {
     }, 3000);
   };
 
+  // 判断是否是TD文件
+  const isTDFile = (name: string): boolean => {
+    return name.toLowerCase() === 'td';
+  };
+
+  // 渲染表格文件卡片
+  const renderTableFileCard = (file: typeof tableFiles[0]) => {
+    const isDisabled = isTDFile(file.name);
+    
+    return (
+      <div 
+        key={file.id} 
+        className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? 'opacity-70' : ''}`}
+      >
+        <div className="p-5">
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">{file.name}</h3>
+          <div className="flex justify-between mb-4">
+            <p className="text-gray-500 text-sm truncate">{file.filename}</p>
+            <p className="text-green-600 font-medium text-sm">{file.size}</p>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            {isDisabled ? (
+              <Tooltip content="Waiting for data update" position="top">
+                <button
+                  className="bg-gray-400 text-white py-2 px-4 rounded-md flex items-center cursor-not-allowed"
+                  disabled
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </button>
+              </Tooltip>
+            ) : (
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                onClick={() => handleTableDownload(file.filename)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </button>
+            )}
+            
+            {isDisabled ? (
+              <Tooltip content="Waiting for data update" position="top">
+                <button
+                  className="text-gray-400 p-2 rounded-full cursor-not-allowed"
+                  disabled
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </Tooltip>
+            ) : (
+              <button
+                className="text-gray-600 hover:text-green-600 p-2 rounded-full hover:bg-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onClick={() => handleTableCopyLink(file.filename)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
@@ -128,43 +203,7 @@ const DownloadPage = () => {
           <h1 className="text-4xl font-bold text-green-700 text-center mb-10">Table Files</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {tableFiles.map(file => (
-              <div 
-                key={file.id} 
-                className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="p-5">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">{file.name}</h3>
-                  <div className="flex justify-between mb-4">
-                    <p className="text-gray-500 text-sm truncate">{file.filename}</p>
-                    <p className="text-green-600 font-medium text-sm">{file.size}</p>
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <button
-                      className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                      onClick={() => handleTableDownload(file.filename)}
-                      title="Click to download the file"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                      Download
-                    </button>
-                    
-                    <button
-                      className="text-gray-600 hover:text-green-600 p-2 rounded-full hover:bg-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500"
-                      onClick={() => handleTableCopyLink(file.filename)}
-                      title="Copy the download link"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {tableFiles.map(renderTableFileCard)}
           </div>
         </section>
         
@@ -189,7 +228,6 @@ const DownloadPage = () => {
                     <button
                       className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                       onClick={() => handleStructureDownload(file.filename)}
-                      title="Click to download the file"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -200,7 +238,6 @@ const DownloadPage = () => {
                     <button
                       className="text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-blue-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onClick={() => handleStructureCopyLink(file.filename)}
-                      title="Copy the download link"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />

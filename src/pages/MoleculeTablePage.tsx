@@ -19,6 +19,7 @@ import {
   getStateKey,
   getStateFromLocalStorage 
 } from '../utils/stateHelpers';
+import Tooltip from '../components/Tooltip';
 
 // 定义表格数据类型
 interface TableRow {
@@ -469,19 +470,24 @@ const MoleculeTablePage = () => {
           </button>
           
           <h1 className="text-2xl font-bold text-green-700">
-            {moleculeId} Docking Results
+            Docking Results for {moleculeId}
           </h1>
           
           <div className="select-none">
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
-                checked={withoutPDX}
-                onChange={handleWithoutPDXChange}
-              />
-              <span className="text-lg">Without PDX</span>
-            </label>
+            <Tooltip
+              content="Filter out docking results containing PDX compounds"
+              position="top"
+            >
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
+                  checked={withoutPDX}
+                  onChange={handleWithoutPDXChange}
+                />
+                <span className="text-lg">Without PDX</span>
+              </label>
+            </Tooltip>
           </div>
         </div>
         

@@ -16,6 +16,7 @@ import {
   getStateFromLocalStorage,
   serializeAllStateInfo
 } from '../utils/stateHelpers';
+import Tooltip from '../components/Tooltip';
 
 // Define the table data type
 interface TableRow {
@@ -251,6 +252,7 @@ const GlobalSearchPage = () => {
     });
     
     // Fix the URL with correct path and parameter format
+    // const apiUrl = `https://cbi.gxu.edu.cn/DockingDB/DockingDB_web_backend/api/search/?${params}`;
     const apiUrl = `http://127.0.0.1:8000/api/search/?${params}`;
     
     console.log(`Fetching search results:`, {
@@ -587,19 +589,24 @@ const GlobalSearchPage = () => {
           </button>
           
           <h1 className="text-2xl font-bold text-green-700">
-            Global Searching Results for: {debouncedFilter || "All"}
+            Global Searching Docking Results for: {debouncedFilter || "All"}
           </h1>
           
           <div className="select-none">
-            <label className="inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
-                checked={withoutPDX}
-                onChange={handleWithoutPDXChange}
-              />
-              <span className="text-lg">Without PDX</span>
-            </label>
+            <Tooltip
+              content="Filter out docking results containing PDX compounds"
+              position="top"
+            >
+              <label className="inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
+                  checked={withoutPDX}
+                  onChange={handleWithoutPDXChange}
+                />
+                <span className="text-lg">Without PDX</span>
+              </label>
+            </Tooltip>
           </div>
         </div>
         
