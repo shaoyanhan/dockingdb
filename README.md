@@ -121,7 +121,7 @@ Contributions are welcome! Please follow these steps:
 If you have any questions or suggestions, please contact us through the following methods:
 
 - Email: 1740569155@qq.com
-- Project Issues: [GitHub Issues](https://github.com/yourusername/dockingdb/issues)
+- Project Issues: [GitHub Issues](https://github.com/shaoyanhan/dockingdb/issues)
 
 ---
 
@@ -129,7 +129,7 @@ If you have any questions or suggestions, please contact us through the followin
 
 Due to network issues, the provided web links may not be successfully parsed. If you need to access these links, please ensure their validity and try again. If the issue persists, it might be related to the link itself or your network connection.
 
-# DockingDB
+# DockingDB (https://cbi.gxu.edu.cn/DockingDB)
 
 一个用于探索和可视化分子对接信息的 web 应用程序。DockingDB 提供了一个交互式界面，用于探索植物激素分子与蛋白质受体的对接信息，查看分子结构，并检索相关研究数据。
 
@@ -252,4 +252,4 @@ dockingdb/
 如有问题或建议，请通过以下方式联系我们：
 
 - 电子邮件：1740569155@qq.com
-- 项目 Issues：[GitHub Issues](https://github.com/yourusername/dockingdb/issues)
+- 项目 Issues：[GitHub Issues](https://github.com/shaoyanhan/dockingdb/issues)
