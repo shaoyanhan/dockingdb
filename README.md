@@ -1,4 +1,4 @@
-# DockingDB
+# DockingDB (https://cbi.gxu.edu.cn/DockingDB)
 
 A web application for exploring and visualizing molecular docking information. DockingDB provides an interactive interface to explore the docking information of plant hormone molecules with protein receptors, view molecular structures, and retrieve relevant research data.
 

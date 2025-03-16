@@ -23,15 +23,15 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
   
   // 定义联系人信息
   const webDevelopers: ContactPerson[] = [
-    { name: 'Yanhan Shao', email: '1740569155@qq.com' },
-    { name: 'Yixiong Guo', email: '1740569155@qq.com' },
-    { name: 'Xingdong Xu' },
+    { name: 'Yan-Han Shao', email: '1740569155@qq.com' },
+    { name: 'Yi-Xiong Guo', email: '401522126@qq.com' },
+    { name: 'Xin-Dong Xu' ,email: 'xdxu@st.gxu.edu.cn'},
     
   ];
   
   const experimentTeam: ContactPerson[] = [
-    { name: 'Yixiong Guo', email: '1740569155@qq.com' },
-    { name: 'Xingdong Xu' },
+    { name: 'Yi-Xiong Guo', email: '401522126@qq.com' },
+    { name: 'Xin-Dong Xu',email: 'xdxu@st.gxu.edu.cn'},
     { name: 'Fenmei Liu' },
     { name: 'Guolv Xu' },
     { name: 'Si-Ying Ye' },
@@ -43,9 +43,9 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
   ];
   
   const professors: ContactPerson[] = [
-    { name: 'Jia-Ming Song' },
-    { name: 'Wenguo Cai' },
-    { name: 'Zhenhua Ming' },
+    { name: 'Jia-Ming Song' ,email: 'jmsong@swu.edu.cn'},
+    { name: 'Wenguo Cai' ,email: 'wcai@gxu.edu.cn'},
+    { name: 'Zhenhua Ming' ,email: 'zhming@gxu.edu.cn'},
     { name: 'Ling-Ling Chen', email: 'llchen@gxu.edu.cn' },
   ];
   
@@ -62,7 +62,8 @@ const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
     },
     { 
       name: 'Location 3', 
-      address: 'College of Agronomy and Biotechnology, Southwest University, Chongqing 400715, China'
+      address: 'College of Agronomy and Biotechnology, Southwest University, Chongqing 400715, China',
+      website: 'http://admissions.swu.edu.cn/Programs/Agronomy/Collge_of_Agronomy_and_Biotechnology.htm'
     },
   ];
   

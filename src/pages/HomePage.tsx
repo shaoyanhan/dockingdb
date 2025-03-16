@@ -155,7 +155,8 @@ const HomePage = () => {
           position="top"
           className="block"
         >
-          <div className="opacity-70 cursor-not-allowed">
+          {/* <div className="opacity-70 cursor-not-allowed"> */}
+          <div className="cursor-not-allowed">
             <MoleculeCard 
               id={molecule.id} 
               imageSrc={molecule.src} 

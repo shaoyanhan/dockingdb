@@ -130,9 +130,13 @@ const DownloadPage = () => {
     const isDisabled = isTDFile(file.name);
     
     return (
+      // <div 
+      //   key={file.id} 
+      //   className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? 'opacity-70' : ''}`}
+      // >
       <div 
         key={file.id} 
-        className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? 'opacity-70' : ''}`}
+        className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? '' : ''}`}
       >
         <div className="p-5">
           <h3 className="text-xl font-semibold text-gray-800 mb-2">{file.name}</h3>
@@ -142,7 +146,7 @@ const DownloadPage = () => {
           </div>
           
           <div className="flex justify-between items-center">
-            {isDisabled ? (
+            {/* {isDisabled ? (
               <Tooltip content="Waiting for data update" position="top">
                 <button
                   className="bg-gray-400 text-white py-2 px-4 rounded-md flex items-center cursor-not-allowed"
@@ -164,12 +168,56 @@ const DownloadPage = () => {
                 </svg>
                 Download
               </button>
-            )}
-            
+            )} */}
             {isDisabled ? (
               <Tooltip content="Waiting for data update" position="top">
                 <button
+                  className="bg-green-600 text-white py-2 px-4 rounded-md flex items-center cursor-not-allowed"
+                  disabled
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download
+                </button>
+              </Tooltip>
+            ) : (
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md flex items-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                onClick={() => handleTableDownload(file.filename)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </button>
+            )}
+            
+            {/* {isDisabled ? (
+              <Tooltip content="Waiting for data update" position="top">
+                <button
                   className="text-gray-400 p-2 rounded-full cursor-not-allowed"
+                  disabled
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+              </Tooltip>
+            ) : (
+              <button
+                className="text-gray-600 hover:text-green-600 p-2 rounded-full hover:bg-gray-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                onClick={() => handleTableCopyLink(file.filename)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )} */}
+            {isDisabled ? (
+              <Tooltip content="Waiting for data update" position="top">
+                <button
+                  className="text-gray-600 p-2 rounded-full cursor-not-allowed"
                   disabled
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
