@@ -11,15 +11,14 @@ import {
   flexRender,
   ColumnFiltersState,
 } from '@tanstack/react-table';
-import { 
-  TableState as TableStateType, 
-  serializeAllStateInfo, 
-  deserializeTableState, 
-  saveStateToLocalStorage, 
+import {
+  TableState as TableStateType,
+  serializeAllStateInfo,
+  deserializeTableState,
+  saveStateToLocalStorage,
   getStateKey,
-  getStateFromLocalStorage 
+  getStateFromLocalStorage
 } from '../utils/stateHelpers';
-import Tooltip from '../components/Tooltip';
 
 // 定义表格数据类型
 interface TableRow {
@@ -59,10 +58,10 @@ const MoleculeTablePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // 是否已经从结构页面返回的标志
   const isReturnFromStructure = useRef(false);
-  
+
   // Get state from multiple sources in order of priority:
   // 1. Location state (from navigate)
   // 2. URL query parameters
@@ -73,39 +72,46 @@ const MoleculeTablePage = () => {
     const query = searchParams.toString();
     return query ? deserializeTableState(query)?.tableState : null;
   }, [searchParams]);
-  
+
   const localStorageState = useMemo(() => {
     if (moleculeId) {
       return getStateFromLocalStorage<TableStateType>(getStateKey('table', moleculeId));
     }
     return null;
   }, [moleculeId]);
-  
+
   // 是否已初始化表格
   const [isInitialized, setIsInitialized] = useState(false);
   // 跟踪筛选条件变化
   const [filterChanged, setFilterChanged] = useState(false);
-  
+
   // State initialization with priority order
-  const initialState = locationState || urlState || localStorageState || {
-    pageIndex: 0,
-    rowsPerPage: 10,
-    globalFilter: '',
-    withoutPDX: false,
-    manualPageIndex: '1'
-  };
-  
+  // Always force withoutPDX to true
+  const initialState = (() => {
+    const baseState = locationState || urlState || localStorageState || {
+      pageIndex: 0,
+      rowsPerPage: 10,
+      globalFilter: '',
+      withoutPDX: true,
+      manualPageIndex: '1'
+    };
+    return {
+      ...baseState,
+      withoutPDX: true
+    };
+  })();
+
   // 状态管理，从获取的状态恢复
   const [tableData, setTableData] = useState<TableData>({ total: 0, rows: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [withoutPDX, setWithoutPDX] = useState(initialState.withoutPDX);
+  const [withoutPDX] = useState(initialState.withoutPDX);
   const [globalFilter, setGlobalFilter] = useState(initialState.globalFilter);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowsPerPage, setRowsPerPage] = useState(initialState.rowsPerPage);
   const [pageIndex, setPageIndex] = useState(initialState.pageIndex);
   const [manualPageIndex, setManualPageIndex] = useState(initialState.manualPageIndex);
-  
+
   // Keep track of the current state for saving
   const currentState = useMemo(() => ({
     pageIndex,
@@ -114,13 +120,13 @@ const MoleculeTablePage = () => {
     withoutPDX,
     manualPageIndex
   }), [pageIndex, rowsPerPage, globalFilter, withoutPDX, manualPageIndex]);
-  
+
   // Save state to localStorage when it changes
   useEffect(() => {
     if (isInitialized && moleculeId) {
       const stateKey = getStateKey('table', moleculeId);
       saveStateToLocalStorage(stateKey, currentState);
-      
+
       // Update URL params without triggering a navigation
       if (!isReturnFromStructure.current) {
         setSearchParams({
@@ -131,29 +137,29 @@ const MoleculeTablePage = () => {
           manualPageIndex
         }, { replace: true });
       }
-      
+
       // Reset the return flag after first render
       if (isReturnFromStructure.current) {
         isReturnFromStructure.current = false;
       }
     }
   }, [currentState, moleculeId, isInitialized, setSearchParams]);
-  
+
   // Update URL when returning from structure page
   useEffect(() => {
     if (locationState && !isReturnFromStructure.current) {
       isReturnFromStructure.current = true;
       console.log('Returning to table page with state:', locationState);
-      
+
       // Clear location state to prevent issues on page refresh
       window.history.replaceState({}, '', window.location.pathname + window.location.search);
     }
   }, [locationState]);
-  
+
   // 将分子ID转换为API路径中需要的格式
   const formatMoleculeNameForApi = (name: string): string => { // 这是一个箭头函数（=>），接收一个参数 name，类型为 string。
     if (!name) return '';
-    
+
     // 检查是否包含空格（多个单词）
     if (name.includes(' ')) {
       // 转换为小写并用下划线连接
@@ -163,29 +169,29 @@ const MoleculeTablePage = () => {
       return name.toLowerCase();
     }
   };
-  
+
   // 生成API URL
   const getApiUrl = (molecule: string, withoutPDX: boolean): string => {
     const formattedName = formatMoleculeNameForApi(molecule);
     const fileName = withoutPDX ? 'statistic_result_bang_sorted' : 'statistic_result_sorted';
     return `https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/json/${formattedName}/${fileName}.json`;
   };
-  
+
   // 获取表格数据
   const fetchTableData = async () => {
     if (!moleculeId) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const url = getApiUrl(moleculeId, withoutPDX);
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`Error fetching data: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setTableData(data);
       setIsInitialized(true);
@@ -196,7 +202,7 @@ const MoleculeTablePage = () => {
       setLoading(false);
     }
   };
-  
+
   // 当分子ID或withoutPDX变化时获取数据
   useEffect(() => {
     fetchTableData();
@@ -212,7 +218,7 @@ const MoleculeTablePage = () => {
       setFilterChanged(true);
     }
   }, [globalFilter, isInitialized]);
-  
+
   // 当筛选条件变化时，重置页码到第一页
   useEffect(() => {
     if (filterChanged && isInitialized) {
@@ -222,10 +228,10 @@ const MoleculeTablePage = () => {
       setFilterChanged(false);
     }
   }, [filterChanged, isInitialized]);
-  
+
   // 定义表格列
   const columnHelper = createColumnHelper<TableRow>();
-  
+
 
   // useMemo 是React的一个Hook，用于缓存计算结果，避免在组件重新渲染时重复计算。这里的columns是一个数组，包含了表格的列配置。通过useMemo，只有在依赖项（这里是空数组[]）发生变化时，才会重新计算columns，从而优化性能。
   const columns = useMemo(() => [
@@ -239,7 +245,7 @@ const MoleculeTablePage = () => {
       header: 'Pocket ID',
       cell: info => {
         const row = info.row.original;
-        
+
         // 构造结构信息对象
         const structureInfo = {
           pdbId: row.pdbId,
@@ -247,7 +253,7 @@ const MoleculeTablePage = () => {
           paperTitle: row.paperTitle,
           paperLink: row.paperLink
         };
-        
+
         // 使用新的函数将所有状态信息（包括结构信息）序列化到URL参数中
         const allParams = serializeAllStateInfo(
           {
@@ -260,15 +266,15 @@ const MoleculeTablePage = () => {
           'table',
           structureInfo
         );
-        
+
         // Build full URL with state
         const url = `/structure/${moleculeId}/${info.getValue()}?${allParams}`;
         const baseUrl = window.location.origin;
         const fullUrl = `${baseUrl}/DockingDB${url}`;
-        
+
         return (
-          <a 
-            href={fullUrl} 
+          <a
+            href={fullUrl}
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();
@@ -312,8 +318,8 @@ const MoleculeTablePage = () => {
       cell: info => {
         const value = info.getValue();
         return (
-          <div 
-            className="max-w-md truncate" 
+          <div
+            className="max-w-md truncate"
             title={value}
           >
             {value}
@@ -326,10 +332,10 @@ const MoleculeTablePage = () => {
       cell: info => {
         const row = info.row.original;
         return (
-          <a 
-            href={row.paperLink} 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href={row.paperLink}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 hover:underline max-w-md truncate block"
             title={info.getValue()}
           >
@@ -339,7 +345,7 @@ const MoleculeTablePage = () => {
       },
     }),
   ], [moleculeId, pageIndex, rowsPerPage, globalFilter, withoutPDX, manualPageIndex]);
-  
+
   // 设置表格实例
   const table = useReactTable({
     data: tableData.rows,
@@ -371,69 +377,69 @@ const MoleculeTablePage = () => {
     getPaginationRowModel: getPaginationRowModel(),
     debugTable: true,
   });
-  
+
   // 确保当数据加载完成后设置正确的页码
   useEffect(() => {
     if (isInitialized && !loading && tableData.rows.length > 0) {
       // 确保页码不超过最大页数
       const maxPageIndex = Math.max(0, Math.ceil(tableData.rows.length / rowsPerPage) - 1);
       const validPageIndex = Math.min(pageIndex, maxPageIndex);
-      
+
       if (validPageIndex !== pageIndex) {
         setPageIndex(validPageIndex);
         setManualPageIndex((validPageIndex + 1).toString());
       }
-      
+
       // 强制表格更新分页状态
       table.setPageIndex(validPageIndex);
     }
   }, [isInitialized, loading, tableData, rowsPerPage]);
-  
+
   // 计算页码显示逻辑
   const pageCount = table.getPageCount();
   const currentPage = table.getState().pagination.pageIndex;
-  
+
   const getPageNumbers = () => {
     const pages = [];
-    
+
     // 始终显示第一页
     pages.push(0);
-    
+
     // 如果当前页不是第一页，并且前一页不是第一页，添加当前页的前一页
     if (currentPage > 1) {
       pages.push(currentPage - 1);
     }
-    
+
     // 如果当前页不是第一页也不是最后一页，添加当前页
     if (currentPage > 0 && currentPage < pageCount - 1) {
       pages.push(currentPage);
     }
-    
+
     // 如果当前页不是最后一页，并且后一页不是最后一页，添加当前页的后一页
     if (currentPage < pageCount - 2) {
       pages.push(currentPage + 1);
     }
-    
+
     // 如果有多于1页，始终显示最后一页
     if (pageCount > 1) {
       pages.push(pageCount - 1);
     }
-    
+
     // 去重并排序
     return [...new Set(pages)].sort((a, b) => a - b);
   };
-  
+
   const pageNumbers = getPageNumbers();
-  
+
   // 处理手动页码跳转
   const handleManualPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setManualPageIndex(e.target.value);
   };
-  
+
   const handleManualPageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const pageNumber = parseInt(manualPageIndex, 10);
-    
+
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= pageCount) {
       setPageIndex(pageNumber - 1);
       table.setPageIndex(pageNumber - 1);
@@ -442,24 +448,19 @@ const MoleculeTablePage = () => {
       setManualPageIndex((pageIndex + 1).toString());
     }
   };
-  
-  // 处理withoutPDX变化
-  const handleWithoutPDXChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setWithoutPDX(e.target.checked);
-  };
-  
+
   // 处理全局筛选变化
   const handleGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setGlobalFilter(e.target.value);
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      
+
       <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="mb-6 flex justify-between items-center">
-          <button 
+        <div className="mb-6 flex justify-between items-center gap-4">
+          <button
             className="bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-6 rounded-md transition-colors flex items-center"
             onClick={() => navigate('/')}
           >
@@ -468,30 +469,11 @@ const MoleculeTablePage = () => {
             </svg>
             Back
           </button>
-          
+
           <h1 className="text-2xl font-bold text-green-700">
             Docking Results for {moleculeId}
           </h1>
-          
-          <div className="select-none">
-            <Tooltip
-              content="Filter out docking results containing PDX compounds"
-              position="top"
-            >
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
-                  checked={withoutPDX}
-                  onChange={handleWithoutPDXChange}
-                />
-                <span className="text-lg">Without PDX</span>
-              </label>
-            </Tooltip>
-          </div>
-        </div>
-        
-        <div className="mb-4 flex justify-end">
+
           <div className="relative w-full max-w-md">
             <input
               type="text"
@@ -502,7 +484,7 @@ const MoleculeTablePage = () => {
             />
           </div>
         </div>
-        
+
         {loading ? (
           <div className="py-16 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-green-700 border-r-2 border-green-700 border-b-2 border-green-700 border-l-2 border-transparent"></div>
@@ -511,7 +493,7 @@ const MoleculeTablePage = () => {
         ) : error ? (
           <div className="py-16 text-center text-red-600">
             <p>{error}</p>
-            <button 
+            <button
               onClick={fetchTableData}
               className="mt-4 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800"
             >
@@ -526,7 +508,7 @@ const MoleculeTablePage = () => {
                   {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
-                        <th 
+                        <th
                           key={header.id}
                           className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider"
                         >
@@ -541,7 +523,7 @@ const MoleculeTablePage = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {table.getRowModel().rows.map((row, rowIndex) => (
-                    <tr 
+                    <tr
                       key={row.id}
                       className={`
                         ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'} 
@@ -549,7 +531,7 @@ const MoleculeTablePage = () => {
                       `}
                     >
                       {row.getVisibleCells().map(cell => (
-                        <td 
+                        <td
                           key={cell.id}
                           className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
                         >
@@ -564,7 +546,7 @@ const MoleculeTablePage = () => {
                 </tbody>
               </table>
             </div>
-            
+
             {/* 分页组件 */}
             <div className="mt-4 flex flex-wrap justify-between items-center text-sm">
               {/* 显示当前页码和总页数 */}
@@ -577,7 +559,7 @@ const MoleculeTablePage = () => {
                   )}{' '}
                   of {table.getFilteredRowModel().rows.length} rows
                 </span>
-                
+
                 {/* 选择每页显示的行数 */}
                 <select
                   value={rowsPerPage}
@@ -600,7 +582,7 @@ const MoleculeTablePage = () => {
                   ))}
                 </select>
               </div>
-              
+
               {/* 分页按钮 */}
               <div className="flex items-center space-x-2">
                 {/* 上一页按钮 */}
@@ -614,7 +596,7 @@ const MoleculeTablePage = () => {
                   disabled={!table.getCanPreviousPage()}
                   className={`
                     px-3 py-1 rounded-md border
-                    ${table.getCanPreviousPage() 
+                    ${table.getCanPreviousPage()
                       ? 'border-green-700 text-green-700 hover:bg-green-50'
                       : 'border-gray-200 text-gray-400 cursor-not-allowed'}
                   `}
@@ -623,19 +605,19 @@ const MoleculeTablePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                
+
                 {/* 页码按钮 */}
                 {pageNumbers.map((pageNum, idx) => {
                   const isCurrentPage = pageNum === currentPage;
                   const showEllipsisBefore = idx > 0 && pageNumbers[idx - 1] !== pageNum - 1;
                   const showEllipsisAfter = idx < pageNumbers.length - 1 && pageNumbers[idx + 1] !== pageNum + 1;
-                  
+
                   return (
                     <div key={pageNum} className="flex items-center">
                       {showEllipsisBefore && (
                         <span className="px-3 py-1 text-gray-500">...</span>
                       )}
-                      
+
                       <button
                         onClick={() => {
                           setPageIndex(pageNum);
@@ -651,14 +633,14 @@ const MoleculeTablePage = () => {
                       >
                         {pageNum + 1}
                       </button>
-                      
+
                       {showEllipsisAfter && (
                         <span className="px-3 py-1 text-gray-500">...</span>
                       )}
                     </div>
                   );
                 })}
-                
+
                 {/* 下一页按钮 */}
                 <button
                   onClick={() => {
@@ -670,7 +652,7 @@ const MoleculeTablePage = () => {
                   disabled={!table.getCanNextPage()}
                   className={`
                     px-3 py-1 rounded-md border
-                    ${table.getCanNextPage() 
+                    ${table.getCanNextPage()
                       ? 'border-green-700 text-green-700 hover:bg-green-50'
                       : 'border-gray-200 text-gray-400 cursor-not-allowed'}
                   `}
@@ -679,7 +661,7 @@ const MoleculeTablePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
-                
+
                 {/* 手动页码输入框 */}
                 <form onSubmit={handleManualPageSubmit} className="flex items-center">
                   <input
@@ -700,7 +682,7 @@ const MoleculeTablePage = () => {
           </>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

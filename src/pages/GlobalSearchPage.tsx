@@ -8,15 +8,14 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
-import { 
-  TableState as TableStateType, 
-  deserializeTableState, 
-  saveStateToLocalStorage, 
+import {
+  TableState as TableStateType,
+  deserializeTableState,
+  saveStateToLocalStorage,
   getStateKey,
   getStateFromLocalStorage,
   serializeAllStateInfo
 } from '../utils/stateHelpers';
-import Tooltip from '../components/Tooltip';
 
 // Define the table data type
 interface TableRow {
@@ -47,11 +46,11 @@ const GlobalSearchPage = () => {
   const location = useLocation();
   const previousState = location.state as PreviousSearchState | undefined;
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const isReturnFromStructure = useRef(false);
   const initialLoadComplete = useRef(false);
   const forceRefreshRef = useRef(0);
-  
+
   // Get state from multiple sources in order of priority:
   // 1. Location state (from navigate)
   // 2. URL query parameters
@@ -61,27 +60,34 @@ const GlobalSearchPage = () => {
     const query = searchParams.toString();
     return query ? deserializeTableState(query)?.tableState : null;
   }, [searchParams]);
-  
+
   const localStorageState = useMemo(() => {
     return getStateFromLocalStorage<TableStateType>(getStateKey('search'));
   }, []);
-  
+
   // Initialize from URL params (for direct access via URL)
   const queryParam = searchParams.get('query') || '';
   const withoutPDXParam = searchParams.get('withoutPDX') === 'true';
   const pageIndexParam = parseInt(searchParams.get('pageIndex') || '0', 10);
   const rowsPerPageParam = parseInt(searchParams.get('rowsPerPage') || '10', 10);
   const manualPageIndexParam = searchParams.get('manualPageIndex') || '1';
-  
+
   // State initialization with priority order for direct initialization
-  const initialState = previousState?.tableState || urlState || localStorageState || {
-    pageIndex: pageIndexParam,
-    rowsPerPage: rowsPerPageParam,
-    globalFilter: queryParam,
-    withoutPDX: withoutPDXParam,
-    manualPageIndex: manualPageIndexParam
-  };
-  
+  // Always force withoutPDX to true
+  const initialState = (() => {
+    const baseState = previousState?.tableState || urlState || localStorageState || {
+      pageIndex: pageIndexParam,
+      rowsPerPage: rowsPerPageParam,
+      globalFilter: queryParam,
+      withoutPDX: withoutPDXParam,
+      manualPageIndex: manualPageIndexParam
+    };
+    return {
+      ...baseState,
+      withoutPDX: true
+    };
+  })();
+
   // Table state
   const [tableData, setTableData] = useState<TableData>({ total: 0, rows: [] });
   const [loading, setLoading] = useState(true);
@@ -93,12 +99,12 @@ const GlobalSearchPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(initialState.rowsPerPage);
   const [manualPageIndex, setManualPageIndex] = useState(initialState.manualPageIndex);
   const [forceRefresh, setForceRefresh] = useState(0);
-  
+
   // Update forceRefreshRef when forceRefresh changes
   useEffect(() => {
     forceRefreshRef.current = forceRefresh;
   }, [forceRefresh]);
-  
+
   // Track the last successful request to prevent outdated data
   const lastSuccessfulRequest = useRef({
     query: '',
@@ -106,7 +112,7 @@ const GlobalSearchPage = () => {
     pageIndex: 0,
     pageSize: 30
   });
-  
+
   // Store previous search results
   const [cachedSearchResults, setCachedSearchResults] = useState<{
     query: string;
@@ -115,7 +121,7 @@ const GlobalSearchPage = () => {
     pageSize: number;
     data: TableData;
   } | null>(null);
-  
+
   // Keep track of the current state for saving
   const currentState = useMemo(() => ({
     pageIndex,
@@ -124,13 +130,13 @@ const GlobalSearchPage = () => {
     withoutPDX,
     manualPageIndex
   }), [pageIndex, rowsPerPage, debouncedFilter, withoutPDX, manualPageIndex]);
-  
+
   // Handle returning from structure page - this runs ONCE
   useEffect(() => {
     if (previousState?.previousSearch && !isReturnFromStructure.current) {
       console.log('Returning from structure page with state:', previousState.tableState);
       isReturnFromStructure.current = true;
-      
+
       // Update URL params without triggering a navigation
       setSearchParams({
         query: previousState.tableState.globalFilter,
@@ -139,17 +145,17 @@ const GlobalSearchPage = () => {
         page_size: previousState.tableState.rowsPerPage.toString(),
         manualPageIndex: previousState.tableState.manualPageIndex
       }, { replace: true });
-      
+
       // Clear location state to prevent issues on page refresh
       window.history.replaceState({}, '', window.location.pathname + window.location.search);
-      
+
       // If we have cached data for this exact query, use it immediately
-      if (cachedSearchResults && 
-          cachedSearchResults.query === previousState.tableState.globalFilter &&
-          cachedSearchResults.withoutPDX === previousState.tableState.withoutPDX &&
-          cachedSearchResults.pageIndex === previousState.tableState.pageIndex &&
-          cachedSearchResults.pageSize === previousState.tableState.rowsPerPage) {
-        
+      if (cachedSearchResults &&
+        cachedSearchResults.query === previousState.tableState.globalFilter &&
+        cachedSearchResults.withoutPDX === previousState.tableState.withoutPDX &&
+        cachedSearchResults.pageIndex === previousState.tableState.pageIndex &&
+        cachedSearchResults.pageSize === previousState.tableState.rowsPerPage) {
+
         console.log('Using cached data for return navigation');
         setTableData(cachedSearchResults.data);
         setLoading(false);
@@ -157,39 +163,39 @@ const GlobalSearchPage = () => {
       } else {
         // Otherwise, we'll need to fetch the data
         console.log('No cache available, will fetch data for page', previousState.tableState.pageIndex);
-        
+
         // Mark as not loaded yet
         initialLoadComplete.current = false;
       }
     }
   }, []);
-  
+
   // Debounce filter changes
   useEffect(() => {
     if (isReturnFromStructure.current && !initialLoadComplete.current) {
       // Don't debounce when returning from structure page - we want immediate results
       return;
     }
-    
+
     const timer = setTimeout(() => {
       setDebouncedFilter(globalFilter);
-      
+
       // Only reset page index for user-initiated filter changes
       if (!isReturnFromStructure.current || initialLoadComplete.current) {
         setPageIndex(0);
         setManualPageIndex('1');
       }
     }, 1000);
-    
+
     return () => clearTimeout(timer);
   }, [globalFilter]);
-  
+
   // Save state to localStorage when it changes
   useEffect(() => {
     if (initialLoadComplete.current) {
       const stateKey = getStateKey('search');
       saveStateToLocalStorage(stateKey, currentState);
-      
+
       // Update URL params without triggering a navigation if not returning from structure page
       if (!isReturnFromStructure.current) {
         // Ensure we're using the parameter names that match the API
@@ -201,29 +207,29 @@ const GlobalSearchPage = () => {
           manualPageIndex: manualPageIndex
         }, { replace: true });
       }
-      
+
       // Reset the return flag after first render
       if (isReturnFromStructure.current && forceRefreshRef.current === forceRefresh) {
         isReturnFromStructure.current = false;
       }
     }
   }, [currentState, setSearchParams, forceRefresh]);
-  
+
   // Fetch data from the backend
   const fetchSearchResults = async () => {
     // Skip fetch if we're returning from structure page and already have the data
-    if (isReturnFromStructure.current && 
-        !initialLoadComplete.current && 
-        previousState?.tableState) {
-      
+    if (isReturnFromStructure.current &&
+      !initialLoadComplete.current &&
+      previousState?.tableState) {
+
       console.log('Fetching data from structure return, page:', previousState.tableState.pageIndex);
-      
+
       // Make sure we fetch data for the correct page from structure
       const structPageIndex = previousState.tableState.pageIndex;
       const structQuery = previousState.tableState.globalFilter;
       const structWithoutPDX = previousState.tableState.withoutPDX;
       const structRowsPerPage = previousState.tableState.rowsPerPage;
-      
+
       // Ensure parameters match what we should fetch
       if (debouncedFilter !== structQuery) {
         setDebouncedFilter(structQuery);
@@ -238,10 +244,10 @@ const GlobalSearchPage = () => {
         setRowsPerPage(structRowsPerPage);
       }
     }
-    
+
     setLoading(true);
     setError(null);
-    
+
     // Use debouncedFilter for the search query as it contains the most current filter value
     const searchQuery = debouncedFilter;
     const params = new URLSearchParams({
@@ -250,11 +256,11 @@ const GlobalSearchPage = () => {
       page_index: pageIndex.toString(),
       page_size: rowsPerPage.toString()
     });
-    
+
     // Fix the URL with correct path and parameter format
-    // const apiUrl = `https://cbi.gxu.edu.cn/DockingDB/DockingDB_web_backend/api/search/?${params}`;
-    const apiUrl = `http://127.0.0.1:8000/api/search/?${params}`;
-    
+    const apiUrl = `https://cbi.gxu.edu.cn/DockingDB/DockingDB_web_backend/api/search/?${params}`;
+    // const apiUrl = `http://127.0.0.1:8000/api/search/?${params}`;
+
     console.log(`Fetching search results:`, {
       query: searchQuery,
       without_pdx: withoutPDX,
@@ -262,17 +268,17 @@ const GlobalSearchPage = () => {
       page_size: rowsPerPage,
       url: apiUrl
     });
-    
+
     try {
       const response = await fetch(apiUrl);
-      
+
       if (!response.ok) {
         throw new Error(`Error fetching data: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log(`Request successful, received data for page ${pageIndex}`);
-      
+
       // Update last successful request - update parameter names here too
       lastSuccessfulRequest.current = {
         query: searchQuery,
@@ -280,9 +286,9 @@ const GlobalSearchPage = () => {
         pageIndex,
         pageSize: rowsPerPage
       };
-      
+
       setTableData(data);
-      
+
       // Cache the results
       setCachedSearchResults({
         query: searchQuery,
@@ -291,7 +297,7 @@ const GlobalSearchPage = () => {
         pageSize: rowsPerPage,
         data
       });
-      
+
       // Update URL params silently
       setSearchParams({
         query: searchQuery,
@@ -299,7 +305,7 @@ const GlobalSearchPage = () => {
         page_index: pageIndex.toString(),
         page_size: rowsPerPage.toString()
       }, { replace: true });
-      
+
       // Mark as fully loaded when returning from structure and final data loaded
       if (isReturnFromStructure.current) {
         initialLoadComplete.current = true;
@@ -311,7 +317,7 @@ const GlobalSearchPage = () => {
       setLoading(false);
     }
   };
-  
+
   // Fetch data when parameters change
   useEffect(() => {
     // Handle special case for returning from structure page
@@ -320,25 +326,25 @@ const GlobalSearchPage = () => {
       fetchSearchResults();
       return;
     }
-    
+
     // Skip initial fetch if we're returning from structure and already handled it
     if (isReturnFromStructure.current && !initialLoadComplete.current) {
       return;
     }
-    
+
     // Normal case - fetch when params change
     const handler = setTimeout(() => {
       fetchSearchResults();
     }, 50);
-    
+
     return () => {
       clearTimeout(handler);
     };
   }, [debouncedFilter, withoutPDX, pageIndex, rowsPerPage]);
-  
+
   // Define table columns
   const columnHelper = createColumnHelper<TableRow>();
-  
+
   const columns = useMemo(() => [
     columnHelper.accessor('hormone_type', {
       header: 'Hormone',
@@ -352,7 +358,7 @@ const GlobalSearchPage = () => {
       header: 'Pocket ID',
       cell: info => {
         const row = info.row.original;
-        
+
         // 构造结构信息对象
         const structureInfo = {
           pdbId: row.pdb_id,
@@ -360,7 +366,7 @@ const GlobalSearchPage = () => {
           paperTitle: row.paper_title,
           paperLink: row.paper_link
         };
-        
+
         // 使用新的函数将所有状态信息（包括结构信息）序列化到URL参数中
         const allParams = serializeAllStateInfo(
           {
@@ -373,15 +379,15 @@ const GlobalSearchPage = () => {
           'search',
           structureInfo
         );
-        
+
         // Build full URL with state
         const url = `/structure/${row.hormone_type}/${info.getValue()}?${allParams}`;
         const baseUrl = window.location.origin;
         const fullUrl = `${baseUrl}/DockingDB${url}`;
-        
+
         return (
-          <a 
-            href={fullUrl} 
+          <a
+            href={fullUrl}
             className="text-blue-600 hover:text-blue-800 hover:underline"
             onClick={(e) => {
               e.preventDefault();
@@ -423,8 +429,8 @@ const GlobalSearchPage = () => {
       cell: info => {
         const value = info.getValue();
         return (
-          <div 
-            className="max-w-md truncate" 
+          <div
+            className="max-w-md truncate"
             title={value}
           >
             {value}
@@ -437,10 +443,10 @@ const GlobalSearchPage = () => {
       cell: info => {
         const row = info.row.original;
         return (
-          <a 
-            href={row.paper_link} 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href={row.paper_link}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 hover:underline max-w-md truncate block"
             title={info.getValue()}
           >
@@ -450,7 +456,7 @@ const GlobalSearchPage = () => {
       },
     }),
   ], [pageIndex, rowsPerPage, debouncedFilter, withoutPDX, manualPageIndex]);
-  
+
   // Set up table instance
   const table = useReactTable({
     data: tableData.rows,
@@ -473,9 +479,9 @@ const GlobalSearchPage = () => {
           pageIndex,
           pageSize: rowsPerPage,
         });
-        
+
         const newPageIndex = newState.pageIndex;
-        
+
         // Only update if the page is actually different to avoid UI desyncs
         if (newPageIndex !== pageIndex) {
           console.log(`Table pagination change: ${pageIndex} -> ${newPageIndex}`);
@@ -489,43 +495,43 @@ const GlobalSearchPage = () => {
     // Use memo to prevent recreating this on every render
     getCoreRowModel: useMemo(() => getCoreRowModel(), []),
   });
-  
+
   // Calculate page numbers for pagination display
   const pageCount = table.getPageCount();
   const currentPage = table.getState().pagination.pageIndex;
-  
+
   const getPageNumbers = () => {
     const pages = [];
-    
+
     // Always show first page
     pages.push(0);
-    
+
     // If current page is not first page and previous page is not first page, add previous page
     if (currentPage > 1) {
       pages.push(currentPage - 1);
     }
-    
+
     // If current page is not first or last page, add current page
     if (currentPage > 0 && currentPage < pageCount - 1) {
       pages.push(currentPage);
     }
-    
+
     // If current page is not last page and next page is not last page, add next page
     if (currentPage < pageCount - 2) {
       pages.push(currentPage + 1);
     }
-    
+
     // If more than 1 page, always show last page
     if (pageCount > 1) {
       pages.push(pageCount - 1);
     }
-    
+
     // Deduplicate and sort
     return [...new Set(pages)].sort((a, b) => a - b);
   };
-  
+
   const pageNumbers = getPageNumbers();
-  
+
   // Handle manual page change
   const handleManualPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setManualPageIndex(e.target.value);
@@ -534,7 +540,7 @@ const GlobalSearchPage = () => {
   const handleManualPageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const pageNumber = parseInt(manualPageIndex, 10);
-    
+
     if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= pageCount) {
       // Only update if the page is actually different
       if (pageNumber - 1 !== pageIndex) {
@@ -549,20 +555,6 @@ const GlobalSearchPage = () => {
     }
   };
 
-  // Handle withoutPDX change
-  const handleWithoutPDXChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    // Only update if the value actually changed
-    if (newValue !== withoutPDX) {
-      console.log(`Without PDX change: ${withoutPDX} -> ${newValue}`);
-      setWithoutPDX(newValue);
-      setPageIndex(0);
-      setManualPageIndex('1');
-      // Force refresh when changing filter
-      setForceRefresh(prev => prev + 1);
-    }
-  };
-
   // Handle global filter change with debouncing built in
   const handleGlobalFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -571,14 +563,14 @@ const GlobalSearchPage = () => {
       setGlobalFilter(newValue);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      
+
       <main className="flex-grow container mx-auto px-4 py-8" key={`main-container-${forceRefresh}`}>
-        <div className="mb-6 flex justify-between items-center">
-          <button 
+        <div className="mb-6 flex justify-between items-center gap-4">
+          <button
             className="bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-6 rounded-md transition-colors flex items-center"
             onClick={() => navigate('/')}
           >
@@ -587,30 +579,11 @@ const GlobalSearchPage = () => {
             </svg>
             Back
           </button>
-          
+
           <h1 className="text-2xl font-bold text-green-700">
             Global Searching Docking Results for: {debouncedFilter || "All"}
           </h1>
-          
-          <div className="select-none">
-            <Tooltip
-              content="Filter out docking results containing PDX compounds"
-              position="top"
-            >
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="w-5 h-5 mr-2 cursor-pointer accent-green-700"
-                  checked={withoutPDX}
-                  onChange={handleWithoutPDXChange}
-                />
-                <span className="text-lg">Without PDX</span>
-              </label>
-            </Tooltip>
-          </div>
-        </div>
-        
-        <div className="mb-4 flex justify-end">
+
           <div className="relative w-full max-w-md">
             <input
               type="text"
@@ -626,7 +599,7 @@ const GlobalSearchPage = () => {
             )}
           </div>
         </div>
-        
+
         {loading && debouncedFilter === globalFilter ? (
           <div className="py-16 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-green-700 border-r-2 border-green-700 border-b-2 border-green-700 border-l-2 border-transparent"></div>
@@ -635,7 +608,7 @@ const GlobalSearchPage = () => {
         ) : error ? (
           <div className="py-16 text-center text-red-600">
             <p>{error}</p>
-            <button 
+            <button
               onClick={fetchSearchResults}
               className="mt-4 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800"
             >
@@ -650,7 +623,7 @@ const GlobalSearchPage = () => {
                   {table.getHeaderGroups().map(headerGroup => (
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map(header => (
-                        <th 
+                        <th
                           key={header.id}
                           className="px-6 py-3 text-left text-sm font-semibold uppercase tracking-wider"
                         >
@@ -663,13 +636,13 @@ const GlobalSearchPage = () => {
                     </tr>
                   ))}
                 </thead>
-                <tbody 
+                <tbody
                   className="bg-white divide-y divide-gray-200"
                   key={`page-${pageIndex}-size-${rowsPerPage}`}
                 >
                   {table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row, rowIndex) => (
-                      <tr 
+                      <tr
                         key={row.id}
                         className={`
                           ${rowIndex % 2 === 0 ? 'bg-white' : 'bg-green-50'} 
@@ -677,7 +650,7 @@ const GlobalSearchPage = () => {
                         `}
                       >
                         {row.getVisibleCells().map(cell => (
-                          <td 
+                          <td
                             key={cell.id}
                             className="px-6 py-4 whitespace-nowrap text-sm text-gray-700"
                           >
@@ -699,7 +672,7 @@ const GlobalSearchPage = () => {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Pagination component */}
             {tableData.total > 0 && (
               <div className="mt-4 flex flex-wrap justify-between items-center text-sm">
@@ -713,7 +686,7 @@ const GlobalSearchPage = () => {
                     )}{' '}
                     of {tableData.total} rows
                   </span>
-                  
+
                   {/* Select rows per page */}
                   <select
                     value={rowsPerPage}
@@ -735,7 +708,7 @@ const GlobalSearchPage = () => {
                     ))}
                   </select>
                 </div>
-                
+
                 {/* Pagination buttons */}
                 <div className="flex items-center space-x-2">
                   {/* Previous page button */}
@@ -753,7 +726,7 @@ const GlobalSearchPage = () => {
                     disabled={pageIndex === 0}
                     className={`
                       px-3 py-1 rounded-md border
-                      ${pageIndex > 0 
+                      ${pageIndex > 0
                         ? 'border-green-700 text-green-700 hover:bg-green-50'
                         : 'border-gray-200 text-gray-400 cursor-not-allowed'}
                     `}
@@ -762,19 +735,19 @@ const GlobalSearchPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
-                  
+
                   {/* Page number buttons */}
                   {pageNumbers.map((pageNum, idx) => {
                     const isCurrentPage = pageNum === currentPage;
                     const showEllipsisBefore = idx > 0 && pageNumbers[idx - 1] !== pageNum - 1;
                     const showEllipsisAfter = idx < pageNumbers.length - 1 && pageNumbers[idx + 1] !== pageNum + 1;
-                    
+
                     return (
                       <div key={pageNum} className="flex items-center">
                         {showEllipsisBefore && (
                           <span className="px-3 py-1 text-gray-500">...</span>
                         )}
-                        
+
                         <button
                           onClick={() => {
                             // Only update if clicking a different page
@@ -795,14 +768,14 @@ const GlobalSearchPage = () => {
                         >
                           {pageNum + 1}
                         </button>
-                        
+
                         {showEllipsisAfter && (
                           <span className="px-3 py-1 text-gray-500">...</span>
                         )}
                       </div>
                     );
                   })}
-                  
+
                   {/* Next page button */}
                   <button
                     onClick={() => {
@@ -818,7 +791,7 @@ const GlobalSearchPage = () => {
                     disabled={pageIndex >= pageCount - 1}
                     className={`
                       px-3 py-1 rounded-md border
-                      ${pageIndex < pageCount - 1 
+                      ${pageIndex < pageCount - 1
                         ? 'border-green-700 text-green-700 hover:bg-green-50'
                         : 'border-gray-200 text-gray-400 cursor-not-allowed'}
                     `}
@@ -827,7 +800,7 @@ const GlobalSearchPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
-                  
+
                   {/* Manual page input */}
                   <form onSubmit={handleManualPageSubmit} className="flex items-center">
                     <input
@@ -849,7 +822,7 @@ const GlobalSearchPage = () => {
           </>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

@@ -12,21 +12,21 @@ interface Notification {
 
 // 表格文件数据
 const tableFiles = [
-  { id: 1, name: 'Kin', filename: 'kin.csv', size: '4.6MB' },
-  { id: 2, name: 'iP', filename: 'ip.csv', size: '4.6MB' },
-  { id: 3, name: 'BA', filename: 'ba.csv', size: '4.6MB' },
-  { id: 4, name: 'tZ', filename: 'tz.csv', size: '4.6MB' },
-  { id: 5, name: 'cZ', filename: 'cz.csv', size: '4.6MB' },
-  { id: 6, name: 'DZ', filename: 'dz.csv', size: '4.6MB' },
-  { id: 7, name: 'Diphenylurea', filename: 'diphenylurea.csv', size: '4.5MB' },
-  { id: 8, name: 'TD', filename: 'td.csv', size: '4.6MB' },
-  { id: 9, name: 'Auxin', filename: 'auxin.csv', size: '4.6MB' },
-  { id: 10, name: 'Brassinolide', filename: 'brassinolide.csv', size: '4.4MB' },
-  { id: 11, name: 'Abscisic acid', filename: 'abscisic_acid.csv', size: '4.6MB' },
-  { id: 12, name: 'Gibberellic acid', filename: 'gibberellic_acid.csv', size: '4.6MB' },
-  { id: 13, name: 'Salicylic acid', filename: 'salicylic_acid.csv', size: '4.6MB' },
-  { id: 14, name: 'Jasmonic acid', filename: 'jasmonic_acid.csv', size: '4.6MB' },
-  { id: 15, name: 'Strigolactone', filename: 'strigolactone.csv', size: '4.6MB' }
+  { id: 1, name: 'Kin', filename: 'kin.csv', size: '1.2MB' },
+  { id: 2, name: 'iP', filename: 'ip.csv', size: '1.2MB' },
+  { id: 3, name: 'BA', filename: 'ba.csv', size: '1.2MB' },
+  { id: 4, name: 'tZ', filename: 'tz.csv', size: '1.2MB' },
+  { id: 5, name: 'cZ', filename: 'cz.csv', size: '1.2MB' },
+  { id: 6, name: 'DZ', filename: 'dz.csv', size: '1.2MB' },
+  { id: 7, name: 'Diphenylurea', filename: 'diphenylurea.csv', size: '1.2MB' },
+  { id: 8, name: 'TD', filename: 'td.csv', size: '1.2MB' },
+  { id: 9, name: 'Auxin', filename: 'auxin.csv', size: '1.2MB' },
+  { id: 10, name: 'Brassinolide', filename: 'brassinolide.csv', size: '1.2MB' },
+  { id: 11, name: 'Abscisic acid', filename: 'abscisic_acid.csv', size: '1.2MB' },
+  { id: 12, name: 'Gibberellic acid', filename: 'gibberellic_acid.csv', size: '1.2MB' },
+  { id: 13, name: 'Salicylic acid', filename: 'salicylic_acid.csv', size: '1.2MB' },
+  { id: 14, name: 'Jasmonic acid', filename: 'jasmonic_acid.csv', size: '1.2MB' },
+  { id: 15, name: 'Strigolactone', filename: 'strigolactone.csv', size: '1.2MB' }
 ];
 
 // 结构文件数据
@@ -43,7 +43,7 @@ const DownloadPage = () => {
   const handleTableDownload = (filename: string) => {
     const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/csv/';
     const downloadUrl = `${baseUrl}${filename}`;
-    
+
     // 使用a标签直接下载
     const link = document.createElement('a');
     link.href = downloadUrl;
@@ -51,7 +51,7 @@ const DownloadPage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // 添加通知
     addNotification(`正在下载 ${filename}`, 'info');
   };
@@ -60,7 +60,7 @@ const DownloadPage = () => {
   const handleStructureDownload = (filename: string) => {
     const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/DockingDB/structure/';
     const downloadUrl = `${baseUrl}${filename}`;
-    
+
     // 使用a标签直接下载
     const link = document.createElement('a');
     link.href = downloadUrl;
@@ -68,7 +68,7 @@ const DownloadPage = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     // 添加通知
     addNotification(`正在下载 ${filename}`, 'info');
   };
@@ -77,7 +77,7 @@ const DownloadPage = () => {
   const handleTableCopyLink = (filename: string) => {
     const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/DockingDB/table/csv/';
     const downloadUrl = `${baseUrl}${filename}`;
-    
+
     // 复制链接到剪贴板
     navigator.clipboard.writeText(downloadUrl)
       .then(() => {
@@ -92,7 +92,7 @@ const DownloadPage = () => {
   const handleStructureCopyLink = (filename: string) => {
     const baseUrl = 'https://cbi.gxu.edu.cn/download/yhshao/DockingDB/structure/';
     const downloadUrl = `${baseUrl}${filename}`;
-    
+
     // 复制链接到剪贴板
     navigator.clipboard.writeText(downloadUrl)
       .then(() => {
@@ -110,10 +110,10 @@ const DownloadPage = () => {
       message,
       type
     };
-    
+
     setNotifications(prev => [...prev, newNotification]);
     setNextId(prev => prev + 1);
-    
+
     // 3秒后自动移除通知
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
@@ -128,14 +128,14 @@ const DownloadPage = () => {
   // 渲染表格文件卡片
   const renderTableFileCard = (file: typeof tableFiles[0]) => {
     const isDisabled = isTDFile(file.name);
-    
+
     return (
       // <div 
       //   key={file.id} 
       //   className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? 'opacity-70' : ''}`}
       // >
-      <div 
-        key={file.id} 
+      <div
+        key={file.id}
         className={`bg-white shadow-md rounded-lg overflow-hidden border border-gray-100 hover:shadow-lg transition-shadow duration-300 ${isDisabled ? '' : ''}`}
       >
         <div className="p-5">
@@ -144,7 +144,7 @@ const DownloadPage = () => {
             <p className="text-gray-500 text-sm truncate">{file.filename}</p>
             <p className="text-green-600 font-medium text-sm">{file.size}</p>
           </div>
-          
+
           <div className="flex justify-between items-center">
             {/* {isDisabled ? (
               <Tooltip content="Waiting for data update" position="top">
@@ -192,7 +192,7 @@ const DownloadPage = () => {
                 Download
               </button>
             )}
-            
+
             {/* {isDisabled ? (
               <Tooltip content="Waiting for data update" position="top">
                 <button
@@ -244,25 +244,25 @@ const DownloadPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      
+
       <main className="flex-grow container mx-auto px-4 py-12">
         {/* Table Files 区块 */}
         <section className="mb-16">
           <h1 className="text-4xl font-bold text-green-700 text-center mb-10">Table Files</h1>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {tableFiles.map(renderTableFileCard)}
           </div>
         </section>
-        
+
         {/* Structure Files 区块 */}
         <section>
           <h1 className="text-4xl font-bold text-blue-700 text-center mb-10">Structure Files</h1>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {structureFiles.map(file => (
-              <div 
-                key={file.id} 
+              <div
+                key={file.id}
                 className="bg-blue-50 shadow-md rounded-lg overflow-hidden border border-blue-100 hover:shadow-lg transition-shadow duration-300"
               >
                 <div className="p-5">
@@ -271,7 +271,7 @@ const DownloadPage = () => {
                     <p className="text-gray-500 text-sm truncate">{file.filename}</p>
                     <p className="text-blue-600 font-medium text-sm">{file.size}</p>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <button
                       className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -282,7 +282,7 @@ const DownloadPage = () => {
                       </svg>
                       Download
                     </button>
-                    
+
                     <button
                       className="text-gray-600 hover:text-blue-600 p-2 rounded-full hover:bg-blue-100 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       onClick={() => handleStructureCopyLink(file.filename)}
@@ -298,7 +298,7 @@ const DownloadPage = () => {
           </div>
         </section>
       </main>
-      
+
       {/* 通知系统 */}
       <div className="fixed bottom-5 right-5 flex flex-col items-end space-y-2 z-50">
         {notifications.map(notification => (
@@ -328,7 +328,7 @@ const DownloadPage = () => {
           </div>
         ))}
       </div>
-      
+
       <Footer />
     </div>
   );

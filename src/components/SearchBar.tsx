@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import Tooltip from './Tooltip';
 
 interface SearchBarProps {
   onSearch?: (query: string, withoutPDX: boolean) => void;
@@ -7,9 +6,9 @@ interface SearchBarProps {
 
 const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [withoutPDX, setWithoutPDX] = useState(false);
+  const [withoutPDX] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const handleExampleClick = (example: string) => {
     setSearchQuery(example);
   };
@@ -60,11 +59,11 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           )}
         </div>
       </div>
-      
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-3">
         <div className="text-green-600 mb-2 sm:mb-0 flex items-center">
           <span className="mr-1">Example:</span>
-          <span 
+          <span
             className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("5JCN")}
             tabIndex={0}
@@ -73,7 +72,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             5JCN
           </span>
           <span className="mx-1">,</span>
-          <span 
+          <span
             className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("abscisic_acid")}
             tabIndex={0}
@@ -82,7 +81,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             abscisic_acid
           </span>
           <span className="mx-1">,</span>
-          <span 
+          <span
             className="cursor-pointer hover:underline hover:text-green-700 focus:text-green-800 focus:outline-none focus:ring-1 focus:ring-green-500 px-1 py-0.5 rounded-sm transition-colors"
             onClick={() => handleExampleClick("cytokinin dehydrogenase")}
             tabIndex={0}
@@ -90,29 +89,6 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
           >
             cytokinin dehydrogenase
           </span>
-        </div>
-        <div className="flex items-center">
-          <Tooltip 
-            content="Filter out docking results containing PDX compounds"
-            position="bottom"
-            className="flex items-center"
-          >
-            <div className="flex items-center">
-              <input 
-                type="checkbox" 
-                id="without-pdx" 
-                className="w-5 h-5 mr-2 cursor-pointer accent-green-600"
-                checked={withoutPDX}
-                onChange={(e) => setWithoutPDX(e.target.checked)} 
-              />
-              <label 
-                htmlFor="without-pdx" 
-                className="text-black text-lg cursor-pointer"
-              >
-                Without PDX
-              </label>
-            </div>
-          </Tooltip>
         </div>
       </div>
     </div>
