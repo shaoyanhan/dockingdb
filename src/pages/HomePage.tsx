@@ -48,7 +48,7 @@ const mainMoleculeData: MoleculeData[] = [
 
 // Cytokinins二级数据 - 重新排序并添加DZ
 const cytokininData: MoleculeData[] = [
-  { id: 'KIN', src: KinImage },
+  { id: 'Kin', src: KinImage },
   { id: 'iP', src: iPImage },
   { id: 'BA', src: BAImage },
   { id: 'tZ', src: tZImage },

@@ -12,7 +12,7 @@ interface Notification {
 
 // 表格文件数据
 const tableFiles = [
-  { id: 1, name: 'KIN', filename: 'kin.csv', size: '4.6MB' },
+  { id: 1, name: 'Kin', filename: 'kin.csv', size: '4.6MB' },
   { id: 2, name: 'iP', filename: 'ip.csv', size: '4.6MB' },
   { id: 3, name: 'BA', filename: 'ba.csv', size: '4.6MB' },
   { id: 4, name: 'tZ', filename: 'tz.csv', size: '4.6MB' },
